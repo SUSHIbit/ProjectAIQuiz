@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use App\Services\PdfExportService;
 
 class QuizController extends Controller
 {
@@ -305,6 +306,80 @@ class QuizController extends Controller
         } else {
             // Free users get exactly 10 questions
             return 10;
+        }
+    }
+
+    public function exportPdf(Quiz $quiz, PdfExportService $pdfService)
+    {
+        // Ensure user can only export their own quizzes
+        if ($quiz->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to quiz.');
+        }
+
+        try {
+            $pdf = $pdfService->exportQuizWithAnswers($quiz);
+            $fileName = $pdfService->generateFileName($quiz);
+
+            return $pdf->download($fileName);
+
+        } catch (\Exception $e) {
+            \Log::error('PDF Export Error', [
+                'quiz_id' => $quiz->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Failed to export PDF. Please try again.');
+        }
+    }
+
+    public function exportPdfBlank(Quiz $quiz, PdfExportService $pdfService)
+    {
+        // Ensure user can only export their own quizzes
+        if ($quiz->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to quiz.');
+        }
+
+        try {
+            $pdf = $pdfService->exportQuizWithoutAnswers($quiz);
+            $fileName = 'blank_' . $pdfService->generateFileName($quiz);
+
+            return $pdf->download($fileName);
+
+        } catch (\Exception $e) {
+            \Log::error('PDF Export Error', [
+                'quiz_id' => $quiz->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Failed to export PDF. Please try again.');
+        }
+    }
+
+    public function previewPdf(Quiz $quiz, PdfExportService $pdfService)
+    {
+        // Ensure user can only preview their own quizzes
+        if ($quiz->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to quiz.');
+        }
+
+        try {
+            $pdf = $pdfService->exportQuizWithAnswers($quiz);
+            
+            return $pdf->stream('preview_' . $pdfService->generateFileName($quiz));
+
+        } catch (\Exception $e) {
+            \Log::error('PDF Preview Error', [
+                'quiz_id' => $quiz->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Failed to preview PDF. Please try again.');
         }
     }
 }

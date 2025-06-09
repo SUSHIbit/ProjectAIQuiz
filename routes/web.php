@@ -37,6 +37,11 @@ Route::middleware(['auth', 'tier'])->prefix('quiz')->name('quiz.')->group(functi
 Route::middleware('auth')->prefix('quiz')->name('quiz.')->group(function () {
     Route::get('/', [QuizController::class, 'index'])->name('index');
     Route::get('/{quiz}', [QuizController::class, 'show'])->name('show');
+    
+    // PDF Export routes (PHASE 9)
+    Route::get('/{quiz}/export-pdf', [QuizController::class, 'exportPdf'])->name('export.pdf');
+    Route::get('/{quiz}/export-pdf-blank', [QuizController::class, 'exportPdfBlank'])->name('export.pdf-blank');
+    Route::get('/{quiz}/preview-pdf', [QuizController::class, 'previewPdf'])->name('preview.pdf');
 });
 
 // Manual Quiz Creator routes (available to all authenticated users)
@@ -48,7 +53,7 @@ Route::middleware('auth')->prefix('manual-quiz')->name('manual-quiz.')->group(fu
     Route::delete('/{quiz}', [ManualQuizController::class, 'destroy'])->name('destroy');
 });
 
-// Quiz Attempt routes (PHASE 7 ENHANCED)
+// Quiz Attempt routes
 Route::middleware('auth')->prefix('quiz-attempt')->name('quiz.attempt.')->group(function () {
     Route::get('/{quiz}/start', [QuizAttemptController::class, 'start'])->name('start');
     Route::post('/{quiz}/create', [QuizAttemptController::class, 'create'])->name('create');
@@ -58,7 +63,6 @@ Route::middleware('auth')->prefix('quiz-attempt')->name('quiz.attempt.')->group(
     Route::post('/{attempt}/abandon', [QuizAttemptController::class, 'abandon'])->name('abandon');
     Route::get('/{attempt}/result', [QuizAttemptController::class, 'result'])->name('result');
     Route::get('/{quiz}/history', [QuizAttemptController::class, 'history'])->name('history');
-    // NEW: Timer status check route
     Route::get('/{attempt}/timer-status', [QuizAttemptController::class, 'checkTimer'])->name('timer-status');
 });
 

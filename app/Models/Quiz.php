@@ -157,4 +157,36 @@ class Quiz extends Model
         
         return (string) $this->total_questions;
     }
+
+    /**
+     * Check if quiz can be exported by user
+     */
+    public function canBeExportedBy(User $user): bool
+    {
+        return $this->user_id === $user->id;
+    }
+
+    /**
+     * Get export filename
+     */
+    public function getExportFilename(): string
+    {
+        $safeName = preg_replace('/[^a-zA-Z0-9\-_]/', '_', $this->title);
+        $safeName = substr($safeName, 0, 50);
+        
+        return "quiz_{$safeName}_" . now()->format('Y-m-d_His');
+    }
+
+    /**
+     * Get quiz statistics for export
+     */
+    public function getExportStats(): array
+    {
+        return [
+            'total_questions' => $this->total_questions,
+            'source_type' => $this->source_type,
+            'created_date' => $this->created_at->format('M d, Y'),
+            'has_explanations' => $this->quizItems->whereNotNull('explanation')->count() > 0,
+        ];
+    }
 }
