@@ -31,6 +31,21 @@ class TierMiddleware
                 ->with('error', 'You have no AI generation attempts remaining. Upgrade to Premium for unlimited access.');
         }
 
+        // Validate question count limits for quiz generation
+        if ($request->is('quiz/generate') && $request->isMethod('post')) {
+            $questionCount = $request->input('question_count', 10);
+            
+            if ($user->isFree() && $questionCount > 10) {
+                return redirect()->back()
+                    ->with('error', 'Free users are limited to 10 questions per quiz. Upgrade to Premium for more questions.');
+            }
+            
+            if ($user->isPremium() && !in_array($questionCount, [10, 20, 30])) {
+                return redirect()->back()
+                    ->with('error', 'Invalid question count. Please choose 10, 20, or 30 questions.');
+            }
+        }
+
         return $next($request);
     }
 }

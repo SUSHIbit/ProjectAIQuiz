@@ -17,6 +17,7 @@ class Quiz extends Model
         'description',
         'source_type',
         'total_questions',
+        'max_questions_allowed',
     ];
 
     protected $casts = [
@@ -40,7 +41,6 @@ class Quiz extends Model
         return $this->hasMany(QuizAttempt::class);
     }
 
-    // NEW: Add this relationship
     public function userAttempts()
     {
         return $this->hasMany(QuizAttempt::class)->where('user_id', auth()->id());
@@ -96,7 +96,6 @@ class Quiz extends Model
             : $this->description;
     }
 
-    // NEW: Add these methods
     public function canBeTakenBy(User $user): bool
     {
         // Users can take their own quizzes multiple times
@@ -132,5 +131,30 @@ class Quiz extends Model
             ->where('user_id', $user->id)
             ->where('status', 'completed')
             ->count();
+    }
+
+    // NEW: Question count and tier-related methods
+    public function getMaxQuestionsForUser(User $user): int
+    {
+        if ($user->isPremium()) {
+            return min($this->max_questions_allowed ?? 30, 30);
+        }
+        
+        return min($this->max_questions_allowed ?? 10, 10);
+    }
+
+    public function supportsTimer(): bool
+    {
+        // All quizzes support timer, but only premium users can use it
+        return true;
+    }
+
+    public function getQuestionCountDisplayAttribute(): string
+    {
+        if ($this->max_questions_allowed && $this->max_questions_allowed !== $this->total_questions) {
+            return "{$this->total_questions} (max: {$this->max_questions_allowed})";
+        }
+        
+        return (string) $this->total_questions;
     }
 }

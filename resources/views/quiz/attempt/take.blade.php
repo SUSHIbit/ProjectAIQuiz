@@ -6,7 +6,12 @@
             </h2>
             @if($attempt->time_limit)
             <div id="timer-display" class="text-lg font-bold text-red-600">
-                <span id="time-remaining"></span>
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span id="time-remaining">{{ $attempt->formatted_time_remaining }}</span>
+                </div>
             </div>
             @endif
         </div>
@@ -29,6 +34,24 @@
                     <div class="w-full bg-gray-200 rounded-full h-2">
                         <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: {{ $progress }}%"></div>
                     </div>
+                    
+                    <!-- Timer Progress Bar (if timer enabled) -->
+                    @if($attempt->time_limit)
+                    <div class="mt-3">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-medium text-gray-600">Time Remaining</span>
+                            <span class="text-xs text-gray-500">
+                                {{ $attempt->timer_duration_in_minutes }} minute{{ $attempt->timer_duration_in_minutes !== 1 ? 's' : '' }} total
+                            </span>
+                        </div>
+                        @php
+                            $timeProgress = $attempt->time_remaining ? (($attempt->time_remaining / $attempt->time_limit) * 100) : 0;
+                        @endphp
+                        <div class="w-full bg-red-200 rounded-full h-1">
+                            <div id="timer-progress" class="bg-red-500 h-1 rounded-full transition-all duration-1000" style="width: {{ $timeProgress }}%"></div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
 
@@ -37,7 +60,14 @@
                 <div class="p-6">
                     <div class="flex justify-between items-start mb-4">
                         <h3 class="text-lg font-medium text-gray-900">Question {{ $currentIndex + 1 }}</h3>
-                        <span class="text-sm text-gray-500"># {{ $currentQuestion->order }}</span>
+                        <div class="flex items-center space-x-2 text-sm text-gray-500">
+                            @if($attempt->time_limit)
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Timed Quiz</span>
+                            @endif
+                        </div>
                     </div>
                     
                     <p class="text-gray-800 mb-6 text-lg leading-relaxed">{{ $currentQuestion->question }}</p>
@@ -109,90 +139,136 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
                 <div class="p-6">
                     <h4 class="text-md font-medium text-gray-900 mb-4">Question Overview</h4>
-                    <div class="grid grid-cols-10 gap-2">
-                        @foreach($attempt->quiz->quizItems as $index => $item)
-                        @php
-                            $isAnswered = $attempt->answers->where('quiz_item_id', $item->id)->count() > 0;
-                            $isCurrent = $item->id === $currentQuestion->id;
-                        @endphp
-                        <button class="question-nav-btn w-10 h-10 text-sm font-medium rounded-lg border-2 transition-colors
-                            @if($isCurrent) border-blue-500 bg-blue-500 text-white
-                            @elseif($isAnswered) border-green-500 bg-green-100 text-green-800
-                            @else border-gray-300 bg-white text-gray-600 hover:border-gray-400 @endif"
-                            data-question-id="{{ $item->id }}"
-                            data-question-index="{{ $index }}">
-                            {{ $index + 1 }}
-                        </button>
-                        @endforeach
-                    </div>
-                    <div class="flex items-center justify-center space-x-6 mt-4 text-sm">
-                        <div class="flex items-center">
-                            <div class="w-4 h-4 bg-green-100 border-2 border-green-500 rounded mr-2"></div>
-                            <span class="text-gray-600">Answered</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-4 h-4 bg-blue-500 border-2 border-blue-500 rounded mr-2"></div>
-                            <span class="text-gray-600">Current</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-4 h-4 bg-white border-2 border-gray-300 rounded mr-2"></div>
-                            <span class="text-gray-600">Unanswered</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                   <div class="grid grid-cols-10 gap-2">
+                       @foreach($attempt->quiz->quizItems as $index => $item)
+                       @php
+                           $isAnswered = $attempt->answers->where('quiz_item_id', $item->id)->count() > 0;
+                           $isCurrent = $item->id === $currentQuestion->id;
+                       @endphp
+                       <button class="question-nav-btn w-10 h-10 text-sm font-medium rounded-lg border-2 transition-colors
+                           @if($isCurrent) border-blue-500 bg-blue-500 text-white
+                           @elseif($isAnswered) border-green-500 bg-green-100 text-green-800
+                           @else border-gray-300 bg-white text-gray-600 hover:border-gray-400 @endif"
+                           data-question-id="{{ $item->id }}"
+                           data-question-index="{{ $index }}">
+                           {{ $index + 1 }}
+                       </button>
+                       @endforeach
+                   </div>
+                   <div class="flex items-center justify-center space-x-6 mt-4 text-sm">
+                       <div class="flex items-center">
+                           <div class="w-4 h-4 bg-green-100 border-2 border-green-500 rounded mr-2"></div>
+                           <span class="text-gray-600">Answered</span>
+                       </div>
+                       <div class="flex items-center">
+                           <div class="w-4 h-4 bg-blue-500 border-2 border-blue-500 rounded mr-2"></div>
+                           <span class="text-gray-600">Current</span>
+                       </div>
+                       <div class="flex items-center">
+                           <div class="w-4 h-4 bg-white border-2 border-gray-300 rounded mr-2"></div>
+                           <span class="text-gray-600">Unanswered</span>
+                       </div>
+                   </div>
+               </div>
+           </div>
+       </div>
+   </div>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
-        <div class="flex items-center justify-center min-h-screen">
-            <div class="bg-white rounded-lg p-6 max-w-sm mx-auto">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p class="text-center text-gray-600">Submitting answer...</p>
-            </div>
-        </div>
-    </div>
+   <!-- Loading Overlay -->
+   <div id="loading-overlay" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+       <div class="flex items-center justify-center min-h-screen">
+           <div class="bg-white rounded-lg p-6 max-w-sm mx-auto">
+               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+               <p class="text-center text-gray-600">Submitting answer...</p>
+           </div>
+       </div>
+   </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const attemptId = {{ $attempt->id }};
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            let questionStartTime = Date.now();
-            
-            // Timer functionality
-            @if($attempt->time_limit)
-            let timeRemaining = {{ $attempt->time_remaining ?? 0 }};
-            const timerDisplay = document.getElementById('time-remaining');
-            
-            function updateTimer() {
-                if (timeRemaining <= 0) {
-                    // Time's up - auto submit
-                    autoSubmitQuiz();
-                    return;
-                }
-                
-                const minutes = Math.floor(timeRemaining / 60);
-                const seconds = timeRemaining % 60;
-                timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                
-                // Change color when time is running low
-                if (timeRemaining <= 300) { // 5 minutes
-                    timerDisplay.className = 'text-lg font-bold text-red-600 animate-pulse';
-                } else if (timeRemaining <= 600) { // 10 minutes
-                    timerDisplay.className = 'text-lg font-bold text-orange-600';
-                } else {
-                    timerDisplay.className = 'text-lg font-bold text-green-600';
-                }
-                
-                timeRemaining--;
-            }
-            
-            // Update timer every second
-            updateTimer();
-            const timerInterval = setInterval(updateTimer, 1000);
-            
-            function autoSubmitQuiz() {
+   <!-- Timer Warning Modal -->
+   @if($attempt->time_limit)
+   <div id="timer-warning-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+       <div class="flex items-center justify-center min-h-screen">
+           <div class="bg-white rounded-lg p-6 max-w-md mx-auto">
+               <div class="flex items-center mb-4">
+                   <svg class="h-6 w-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                   </svg>
+                   <h3 class="text-lg font-medium text-gray-900">Time Warning!</h3>
+               </div>
+               <p class="text-gray-600 mb-4">You have less than 2 minutes remaining. The quiz will auto-submit when time expires.</p>
+               <div class="flex justify-end">
+                   <button id="close-warning" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                       Continue Quiz
+                   </button>
+               </div>
+           </div>
+       </div>
+   </div>
+   @endif
+
+   <script>
+       document.addEventListener('DOMContentLoaded', function() {
+           const attemptId = {{ $attempt->id }};
+           const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+           let questionStartTime = Date.now();
+           let warningShown = false;
+           
+           // Timer functionality
+           @if($attempt->time_limit)
+           let timeRemaining = {{ $attempt->time_remaining ?? 0 }};
+           const timerDisplay = document.getElementById('time-remaining');
+           const timerProgress = document.getElementById('timer-progress');
+           const timerWarningModal = document.getElementById('timer-warning-modal');
+           const closeWarning = document.getElementById('close-warning');
+           
+           function updateTimer() {
+               if (timeRemaining <= 0) {
+                   // Time's up - auto submit
+                   autoSubmitQuiz();
+                   return;
+               }
+               
+               const minutes = Math.floor(timeRemaining / 60);
+               const seconds = timeRemaining % 60;
+               timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+               
+               // Update progress bar
+               const progressPercent = (timeRemaining / {{ $attempt->time_limit }}) * 100;
+               timerProgress.style.width = progressPercent + '%';
+               
+               // Change color when time is running low
+               if (timeRemaining <= 120) { // 2 minutes
+                   timerDisplay.className = 'text-lg font-bold text-red-600 animate-pulse';
+                   timerProgress.className = 'bg-red-600 h-1 rounded-full transition-all duration-1000';
+                   
+                   // Show warning modal once
+                   if (!warningShown && timeRemaining <= 120) {
+                       warningShown = true;
+                       timerWarningModal.classList.remove('hidden');
+                   }
+               } else if (timeRemaining <= 300) { // 5 minutes
+                   timerDisplay.className = 'text-lg font-bold text-orange-600';
+                   timerProgress.className = 'bg-orange-500 h-1 rounded-full transition-all duration-1000';
+               } else {
+                   timerDisplay.className = 'text-lg font-bold text-green-600';
+                   timerProgress.className = 'bg-green-500 h-1 rounded-full transition-all duration-1000';
+               }
+               
+               timeRemaining--;
+           }
+           
+           // Update timer every second
+           updateTimer();
+           const timerInterval = setInterval(updateTimer, 1000);
+           
+           // Close warning modal
+           if (closeWarning) {
+               closeWarning.addEventListener('click', function() {
+                   timerWarningModal.classList.add('hidden');
+               });
+           }
+           
+           function autoSubmitQuiz() {
                clearInterval(timerInterval);
                alert('Time\'s up! Quiz will be submitted automatically.');
                
@@ -267,6 +343,10 @@
            // Abandon quiz button
            document.getElementById('abandon-btn').addEventListener('click', function() {
                if (confirm('Are you sure you want to abandon this quiz? Your progress will be lost.')) {
+                   @if($attempt->time_limit)
+                   clearInterval(timerInterval);
+                   @endif
+                   
                    fetch(`/quiz-attempt/${attemptId}/abandon`, {
                        method: 'POST',
                        headers: {
@@ -326,6 +406,9 @@
                    
                    if (data.success) {
                        if (data.completed || isSubmitting) {
+                           @if($attempt->time_limit)
+                           clearInterval(timerInterval);
+                           @endif
                            window.location.href = data.redirect || `/quiz-attempt/${attemptId}/result`;
                        } else if (navigateToIndex !== null) {
                            navigateToQuestion(navigateToIndex);
@@ -336,8 +419,20 @@
                                navigateToQuestion(nextIndex);
                            }
                        }
+                       
+                       // Update time remaining if provided
+                       if (data.time_remaining !== undefined) {
+                           timeRemaining = data.time_remaining;
+                       }
                    } else {
-                       alert('Error submitting answer: ' + data.message);
+                       if (data.redirect) {
+                           @if($attempt->time_limit)
+                           clearInterval(timerInterval);
+                           @endif
+                           window.location.href = data.redirect;
+                       } else {
+                           alert('Error submitting answer: ' + data.message);
+                       }
                    }
                })
                .catch(error => {
@@ -348,6 +443,10 @@
            }
 
            function submitQuiz() {
+               @if($attempt->time_limit)
+               clearInterval(timerInterval);
+               @endif
+               
                fetch(`/quiz-attempt/${attemptId}/submit`, {
                    method: 'POST',
                    headers: {

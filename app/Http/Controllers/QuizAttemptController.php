@@ -122,11 +122,10 @@ class QuizAttemptController extends Controller
             return redirect()->route('quiz.attempt.result', $attempt->id);
         }
 
-        // Check if timed out
-        if ($attempt->hasTimedOut()) {
-            $attempt->markAsAbandoned();
+        // Check if timed out and auto-submit
+        if ($attempt->autoSubmitIfTimedOut()) {
             return redirect()->route('quiz.attempt.result', $attempt->id)
-                ->with('warning', 'Quiz time limit exceeded.');
+                ->with('warning', 'Quiz time limit exceeded and has been automatically submitted.');
         }
 
         $attempt->load(['quiz.quizItems', 'answers']);
@@ -161,7 +160,16 @@ class QuizAttemptController extends Controller
 
         // Check if already completed or timed out
         if ($attempt->isCompleted() || $attempt->hasTimedOut()) {
-            return response()->json(['success' => false, 'message' => 'Quiz is no longer active.'], 400);
+            // Auto-submit if timed out
+            if ($attempt->hasTimedOut()) {
+                $attempt->markAsAbandoned();
+            }
+            
+            return response()->json([
+                'success' => false, 
+                'message' => 'Quiz is no longer active.',
+                'redirect' => route('quiz.attempt.result', $attempt->id)
+            ], 400);
         }
 
         try {
@@ -213,6 +221,7 @@ class QuizAttemptController extends Controller
                 'completed' => false,
                 'next_question_id' => $nextQuestion->id ?? null,
                 'questions_remaining' => $attempt->quiz->total_questions - $totalAnswered,
+                'time_remaining' => $attempt->time_remaining,
             ]);
 
         } catch (\Exception $e) {
@@ -238,76 +247,101 @@ class QuizAttemptController extends Controller
         // Check if already completed
         if ($attempt->isCompleted()) {
             return redirect()->route('quiz.attempt.result', $attempt->id);
-        }
+       }
 
-        $attempt->markAsCompleted();
+       $attempt->markAsCompleted();
 
-        return redirect()->route('quiz.attempt.result', $attempt->id)
-            ->with('success', 'Quiz submitted successfully!');
-    }
+       return redirect()->route('quiz.attempt.result', $attempt->id)
+           ->with('success', 'Quiz submitted successfully!');
+   }
 
-    public function result(QuizAttempt $attempt)
-    {
-        $user = auth()->user();
+   public function result(QuizAttempt $attempt)
+   {
+       $user = auth()->user();
 
-        // Check permission
-        if ($attempt->user_id !== $user->id) {
-            abort(403, 'Unauthorized access to quiz attempt.');
-        }
+       // Check permission
+       if ($attempt->user_id !== $user->id) {
+           abort(403, 'Unauthorized access to quiz attempt.');
+       }
 
-        // Ensure attempt is completed or abandoned
-        if ($attempt->isInProgress()) {
-            return redirect()->route('quiz.attempt.take', $attempt->id);
-        }
+       // Ensure attempt is completed or abandoned
+       if ($attempt->isInProgress()) {
+           return redirect()->route('quiz.attempt.take', $attempt->id);
+       }
 
-        $attempt->load(['quiz', 'answers.quizItem']);
+       $attempt->load(['quiz', 'answers.quizItem']);
 
-        // Get previous attempts for comparison
-        $previousAttempts = QuizAttempt::where('user_id', $user->id)
-            ->where('quiz_id', $attempt->quiz_id)
-            ->where('id', '!=', $attempt->id)
-            ->where('status', 'completed')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
+       // Get previous attempts for comparison
+       $previousAttempts = QuizAttempt::where('user_id', $user->id)
+           ->where('quiz_id', $attempt->quiz_id)
+           ->where('id', '!=', $attempt->id)
+           ->where('status', 'completed')
+           ->orderBy('created_at', 'desc')
+           ->take(5)
+           ->get();
 
-        return view('quiz.attempt.result', compact('attempt', 'previousAttempts'));
-    }
+       return view('quiz.attempt.result', compact('attempt', 'previousAttempts'));
+   }
 
-    public function abandon(QuizAttempt $attempt)
-    {
-        $user = auth()->user();
+   public function abandon(QuizAttempt $attempt)
+   {
+       $user = auth()->user();
 
-        // Check permission
-        if ($attempt->user_id !== $user->id) {
-            abort(403, 'Unauthorized access to quiz attempt.');
-        }
+       // Check permission
+       if ($attempt->user_id !== $user->id) {
+           abort(403, 'Unauthorized access to quiz attempt.');
+       }
 
-        // Check if already completed
-        if ($attempt->isCompleted()) {
-            return redirect()->route('quiz.attempt.result', $attempt->id);
-        }
+       // Check if already completed
+       if ($attempt->isCompleted()) {
+           return redirect()->route('quiz.attempt.result', $attempt->id);
+       }
 
-        $attempt->markAsAbandoned();
+       $attempt->markAsAbandoned();
 
-        return redirect()->route('quiz.show', $attempt->quiz_id)
-            ->with('info', 'Quiz attempt abandoned.');
-    }
+       return redirect()->route('quiz.show', $attempt->quiz_id)
+           ->with('info', 'Quiz attempt abandoned.');
+   }
 
-    public function history(Quiz $quiz)
-    {
-        $user = auth()->user();
+   public function history(Quiz $quiz)
+   {
+       $user = auth()->user();
 
-        // Check if user can view this quiz
-        if (!$quiz->canBeTakenBy($user)) {
-            abort(403, 'You do not have permission to view this quiz history.');
-        }
+       // Check if user can view this quiz
+       if (!$quiz->canBeTakenBy($user)) {
+           abort(403, 'You do not have permission to view this quiz history.');
+       }
 
-        $attempts = QuizAttempt::where('user_id', $user->id)
-            ->where('quiz_id', $quiz->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+       $attempts = QuizAttempt::where('user_id', $user->id)
+           ->where('quiz_id', $quiz->id)
+           ->orderBy('created_at', 'desc')
+           ->paginate(10);
 
-        return view('quiz.attempt.history', compact('quiz', 'attempts'));
-    }
+       return view('quiz.attempt.history', compact('quiz', 'attempts'));
+   }
+
+   // NEW: API endpoint to check timer status
+   public function checkTimer(QuizAttempt $attempt)
+   {
+       $user = auth()->user();
+
+       // Check permission
+       if ($attempt->user_id !== $user->id) {
+           return response()->json(['error' => 'Unauthorized'], 403);
+       }
+
+       if ($attempt->hasTimedOut()) {
+           $attempt->markAsAbandoned();
+           return response()->json([
+               'timed_out' => true,
+               'redirect' => route('quiz.attempt.result', $attempt->id)
+           ]);
+       }
+
+       return response()->json([
+           'timed_out' => false,
+           'time_remaining' => $attempt->time_remaining,
+           'formatted_time_remaining' => $attempt->formatted_time_remaining,
+       ]);
+   }
 }

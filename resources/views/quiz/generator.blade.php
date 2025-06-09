@@ -45,7 +45,12 @@
                                     <option value="20">20 Questions</option>
                                     <option value="30">30 Questions</option>
                                 </select>
-                                <p class="mt-1 text-sm text-green-600">✨ Premium: Choose your preferred question count</p>
+                                <p class="mt-1 text-sm text-green-600">
+                                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                    </svg>
+                                    Premium: Choose your preferred question count
+                                </p>
                             @else
                                 <input type="hidden" name="question_count" value="10">
                                 <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
@@ -58,6 +63,25 @@
                                     for up to 30 questions.
                                 </p>
                             @endif
+                        </div>
+
+                        <!-- Tier Comparison Info -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 class="text-sm font-medium text-blue-900 mb-2">Question Count Limits</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div class="flex items-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mr-2">
+                                        Free
+                                    </span>
+                                    <span class="text-blue-800">Fixed 10 questions</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">
+                                        Premium
+                                    </span>
+                                    <span class="text-blue-800">Choose 10, 20, or 30 questions</span>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Attempts Info -->
@@ -81,94 +105,94 @@
 
                         <!-- Generate Button -->
                         <div class="flex justify-end space-x-4">
-                        <a href="{{ route('welcome') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                               Upload Different File
-                           </a>
-                           
-                           <button type="submit" id="generate-btn" class="inline-flex items-center px-6 py-3 bg-blue-600 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                               </svg>
-                               Generate Questions
-                           </button>
-                       </div>
-                   </form>
+                            <a href="{{ route('welcome') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                Upload Different File
+                            </a>
+                            
+                            <button type="submit" id="generate-btn" class="inline-flex items-center px-6 py-3 bg-blue-600 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                                Generate Questions
+                            </button>
+                        </div>
+                    </form>
 
-                   <!-- Loading State -->
-                   <div id="loading-state" class="hidden mt-6 text-center">
-                       <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-blue-500 bg-blue-100">
-                           <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                           </svg>
-                           Generating questions with AI...
-                       </div>
-                       <p class="text-sm text-gray-600 mt-2">This may take 30-60 seconds</p>
-                   </div>
+                    <!-- Loading State -->
+                    <div id="loading-state" class="hidden mt-6 text-center">
+                        <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-blue-500 bg-blue-100">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Generating questions with AI...
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">This may take 30-60 seconds</p>
+                    </div>
 
-                   <!-- Error Display -->
-                   <div id="error-display" class="hidden mt-6 p-4 bg-red-50 border border-red-200 rounded-md">
-                       <div class="flex">
-                           <svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                           </svg>
-                           <div>
-                               <h3 class="text-sm font-medium text-red-800">Generation Failed</h3>
-                               <p id="error-message" class="text-sm text-red-700 mt-1"></p>
-                           </div>
-                       </div>
-                   </div>
-               </div>
-           </div>
-       </div>
-   </div>
+                    <!-- Error Display -->
+                    <div id="error-display" class="hidden mt-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                        <div class="flex">
+                            <svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-sm font-medium text-red-800">Generation Failed</h3>
+                                <p id="error-message" class="text-sm text-red-700 mt-1"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-   <script>
-       document.addEventListener('DOMContentLoaded', function() {
-           const form = document.getElementById('generate-form');
-           const generateBtn = document.getElementById('generate-btn');
-           const loadingState = document.getElementById('loading-state');
-           const errorDisplay = document.getElementById('error-display');
-           const errorMessage = document.getElementById('error-message');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('generate-form');
+            const generateBtn = document.getElementById('generate-btn');
+            const loadingState = document.getElementById('loading-state');
+            const errorDisplay = document.getElementById('error-display');
+            const errorMessage = document.getElementById('error-message');
 
-           form.addEventListener('submit', async function(e) {
-               e.preventDefault();
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-               // Hide previous errors
-               errorDisplay.classList.add('hidden');
-               
-               // Show loading state
-               generateBtn.classList.add('hidden');
-               loadingState.classList.remove('hidden');
+                // Hide previous errors
+                errorDisplay.classList.add('hidden');
+                
+                // Show loading state
+                generateBtn.classList.add('hidden');
+                loadingState.classList.remove('hidden');
 
-               try {
-                   const formData = new FormData(form);
-                   
-                   const response = await fetch('{{ route("quiz.generate") }}', {
-                       method: 'POST',
-                       body: formData,
-                       headers: {
-                           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                       }
-                   });
+                try {
+                    const formData = new FormData(form);
+                    
+                    const response = await fetch('{{ route("quiz.generate") }}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        }
+                    });
 
-                   const data = await response.json();
+                    const data = await response.json();
 
-                   if (data.success) {
-                       window.location.href = data.redirect;
-                   } else {
-                       throw new Error(data.message || 'Failed to generate questions');
-                   }
-               } catch (error) {
-                   // Hide loading state
-                   loadingState.classList.add('hidden');
-                   generateBtn.classList.remove('hidden');
-                   
-                   // Show error
-                   errorMessage.textContent = error.message;
-                   errorDisplay.classList.remove('hidden');
-               }
-           });
-       });
-   </script>
+                    if (data.success) {
+                        window.location.href = data.redirect;
+                    } else {
+                        throw new Error(data.message || 'Failed to generate questions');
+                    }
+                } catch (error) {
+                    // Hide loading state
+                    loadingState.classList.add('hidden');
+                    generateBtn.classList.remove('hidden');
+                    
+                    // Show error
+                    errorMessage.textContent = error.message;
+                    errorDisplay.classList.remove('hidden');
+                }
+            });
+        });
+    </script>
 </x-app-layout>

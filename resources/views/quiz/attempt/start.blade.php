@@ -32,14 +32,30 @@
                                     </svg>
                                     Questions: {{ $quiz->total_questions }}
                                 </div>
+                                @if($quiz->max_questions_allowed && $quiz->max_questions_allowed !== $quiz->total_questions)
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                    Question Limit: {{ $quiz->max_questions_allowed }} (based on tier when created)
+                                </div>
+                                @endif
                             </div>
                             @if($quiz->description)
                                 <p class="mt-3 text-gray-700">{{ $quiz->description }}</p>
                             @endif
                         </div>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $quiz->source_badge_color }}">
-                            {{ $quiz->isAiGenerated() ? 'AI Generated' : 'Manual' }}
-                        </span>
+                        
+                        <div class="flex flex-col space-y-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $quiz->source_badge_color }}">
+                                {{ $quiz->isAiGenerated() ? 'AI Generated' : 'Manual' }}
+                            </span>
+                            @if($quiz->max_questions_allowed > 10)
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Premium Quiz
+                                </span>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -53,7 +69,7 @@
                         
                         <!-- Timer Settings (Premium Feature) -->
                         @if(auth()->user()->isPremium())
-                        <div class="border border-green-200 rounded-lg p-4 bg-green-50">
+                        <div class="border border-green-200 rounded-lg p-4 bg-green-50 mb-6">
                             <div class="flex items-center mb-4">
                                 <h4 class="text-md font-medium text-gray-900">Timer Settings</h4>
                                 <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -87,9 +103,34 @@
                                     </p>
                                 </div>
                             </div>
+
+                            <!-- Timer Benefits -->
+                            <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                <h5 class="text-sm font-medium text-blue-900 mb-2">Timer Benefits:</h5>
+                                <ul class="text-sm text-blue-800 space-y-1">
+                                    <li class="flex items-center">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Simulate real exam conditions
+                                    </li>
+                                    <li class="flex items-center">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Improve time management skills
+                                    </li>
+                                    <li class="flex items-center">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Track time spent per question
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                         @else
-                        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-6">
                             <div class="flex items-center mb-2">
                                 <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
@@ -99,11 +140,22 @@
                                     Premium Required
                                 </span>
                             </div>
-                            <p class="text-sm text-gray-600">
+                            <p class="text-sm text-gray-600 mb-3">
                                 Timer features are available for Premium users. 
                                 <a href="{{ route('tier.upgrade') }}" class="text-blue-600 hover:text-blue-500">Upgrade now</a> 
                                 to enable custom timers for your quizzes.
                             </p>
+                            
+                            <!-- Show what premium users get -->
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                                <h5 class="text-sm font-medium text-yellow-900 mb-2">Premium Timer Features:</h5>
+                                <ul class="text-sm text-yellow-800 space-y-1">
+                                    <li>• Customizable timer (5-60 minutes)</li>
+                                    <li>• Auto-submit when time expires</li>
+                                    <li>• Time tracking per question</li>
+                                    <li>• Real exam simulation</li>
+                                </ul>
+                            </div>
                         </div>
                         @endif
 
@@ -132,74 +184,74 @@
                                 <li class="flex items-start">
                                     <svg class="w-4 h-4 text-blue-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Submit the quiz when you're ready to see your results
-                                </li>
-                                @if(auth()->user()->isPremium())
-                                <li class="flex items-start">
-                                    <svg class="w-4 h-4 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    If timer is enabled, the quiz will auto-submit when time expires
-                                </li>
-                                @endif
-                            </ul>
-                        </div>
+                                   </svg>
+                                   Submit the quiz when you're ready to see your results
+                               </li>
+                               @if(auth()->user()->isPremium())
+                               <li class="flex items-start">
+                                   <svg class="w-4 h-4 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                   </svg>
+                                   If timer is enabled, the quiz will auto-submit when time expires
+                               </li>
+                               @endif
+                           </ul>
+                       </div>
 
-                        <!-- Previous Attempts -->
-                        @if($quiz->hasBeenTakenBy(auth()->user()))
-                        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h4 class="text-md font-medium text-blue-900 mb-2">Previous Attempts</h4>
-                            @php
-                                $bestAttempt = $quiz->getBestAttemptFor(auth()->user());
-                                $attemptCount = $quiz->getAttemptCountFor(auth()->user());
-                            @endphp
-                            <div class="text-sm text-blue-800">
-                                <p>You have taken this quiz {{ $attemptCount }} time{{ $attemptCount !== 1 ? 's' : '' }}.</p>
-                                @if($bestAttempt)
-                                <p>Your best score: <span class="font-medium">{{ $bestAttempt->score_percentage }}%</span> ({{ $bestAttempt->correct_answers }}/{{ $bestAttempt->total_questions }} correct)</p>
-                                @endif
-                                <a href="{{ route('quiz.attempt.history', $quiz->id) }}" class="text-blue-600 hover:text-blue-500">View attempt history →</a>
-                            </div>
-                        </div>
-                        @endif
-                    </div>
+                       <!-- Previous Attempts -->
+                       @if($quiz->hasBeenTakenBy(auth()->user()))
+                       <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                           <h4 class="text-md font-medium text-blue-900 mb-2">Previous Attempts</h4>
+                           @php
+                               $bestAttempt = $quiz->getBestAttemptFor(auth()->user());
+                               $attemptCount = $quiz->getAttemptCountFor(auth()->user());
+                           @endphp
+                           <div class="text-sm text-blue-800">
+                               <p>You have taken this quiz {{ $attemptCount }} time{{ $attemptCount !== 1 ? 's' : '' }}.</p>
+                               @if($bestAttempt)
+                               <p>Your best score: <span class="font-medium">{{ $bestAttempt->score_percentage }}%</span> ({{ $bestAttempt->correct_answers }}/{{ $bestAttempt->total_questions }} correct)</p>
+                               @endif
+                               <a href="{{ route('quiz.attempt.history', $quiz->id) }}" class="text-blue-600 hover:text-blue-500">View attempt history →</a>
+                           </div>
+                       </div>
+                       @endif
+                   </div>
 
-                    <!-- Action Buttons -->
-                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between">
-                        <a href="{{ route('quiz.show', $quiz->id) }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                            </svg>
-                            Back to Quiz
-                        </a>
-                        
-                        <button type="submit" class="inline-flex items-center px-6 py-3 bg-green-600 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-3-4V5a1 1 0 011-1h1a1 1 0 011 1v2M7 7V4a1 1 0 011-1h8a1 1 0 011 1v3"></path>
-                            </svg>
-                            Start Quiz
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+                   <!-- Action Buttons -->
+                   <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between">
+                       <a href="{{ route('quiz.show', $quiz->id) }}" class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                           </svg>
+                           Back to Quiz
+                       </a>
+                       
+                       <button type="submit" class="inline-flex items-center px-6 py-3 bg-green-600 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-3-4V5a1 1 0 011-1h1a1 1 0 011 1v2M7 7V4a1 1 0 011-1h8a1 1 0 011 1v3"></path>
+                           </svg>
+                           Start Quiz
+                       </button>
+                   </div>
+               </form>
+           </div>
+       </div>
+   </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const enableTimer = document.getElementById('enable_timer');
-            const timerSettings = document.getElementById('timer_settings');
-            
-            if (enableTimer && timerSettings) {
-                enableTimer.addEventListener('change', function() {
-                    if (this.checked) {
-                        timerSettings.classList.remove('hidden');
-                    } else {
-                        timerSettings.classList.add('hidden');
-                    }
-                });
-            }
-        });
-    </script>
+   <script>
+       document.addEventListener('DOMContentLoaded', function() {
+           const enableTimer = document.getElementById('enable_timer');
+           const timerSettings = document.getElementById('timer_settings');
+           
+           if (enableTimer && timerSettings) {
+               enableTimer.addEventListener('change', function() {
+                   if (this.checked) {
+                       timerSettings.classList.remove('hidden');
+                   } else {
+                       timerSettings.classList.add('hidden');
+                   }
+               });
+           }
+       });
+   </script>
 </x-app-layout>

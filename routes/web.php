@@ -7,7 +7,7 @@ use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\TierController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\ManualQuizController;
-use App\Http\Controllers\QuizAttemptController; // ADD THIS
+use App\Http\Controllers\QuizAttemptController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -47,31 +47,33 @@ Route::middleware('auth')->prefix('manual-quiz')->name('manual-quiz.')->group(fu
     Route::delete('/{quiz}', [ManualQuizController::class, 'destroy'])->name('destroy');
 });
 
-// routes/web.php (Continue from previous - ADD THESE QUIZ ATTEMPT ROUTES)
+// Quiz Attempt routes (PHASE 7 ENHANCED)
 Route::middleware('auth')->prefix('quiz-attempt')->name('quiz.attempt.')->group(function () {
-   Route::get('/{quiz}/start', [QuizAttemptController::class, 'start'])->name('start');
-   Route::post('/{quiz}/create', [QuizAttemptController::class, 'create'])->name('create');
-   Route::get('/{attempt}/take', [QuizAttemptController::class, 'take'])->name('take');
-   Route::post('/{attempt}/answer', [QuizAttemptController::class, 'answer'])->name('answer');
-   Route::post('/{attempt}/submit', [QuizAttemptController::class, 'submit'])->name('submit');
-   Route::post('/{attempt}/abandon', [QuizAttemptController::class, 'abandon'])->name('abandon');
-   Route::get('/{attempt}/result', [QuizAttemptController::class, 'result'])->name('result');
-   Route::get('/{quiz}/history', [QuizAttemptController::class, 'history'])->name('history');
+    Route::get('/{quiz}/start', [QuizAttemptController::class, 'start'])->name('start');
+    Route::post('/{quiz}/create', [QuizAttemptController::class, 'create'])->name('create');
+    Route::get('/{attempt}/take', [QuizAttemptController::class, 'take'])->name('take');
+    Route::post('/{attempt}/answer', [QuizAttemptController::class, 'answer'])->name('answer');
+    Route::post('/{attempt}/submit', [QuizAttemptController::class, 'submit'])->name('submit');
+    Route::post('/{attempt}/abandon', [QuizAttemptController::class, 'abandon'])->name('abandon');
+    Route::get('/{attempt}/result', [QuizAttemptController::class, 'result'])->name('result');
+    Route::get('/{quiz}/history', [QuizAttemptController::class, 'history'])->name('history');
+    // NEW: Timer status check route
+    Route::get('/{attempt}/timer-status', [QuizAttemptController::class, 'checkTimer'])->name('timer-status');
 });
 
 // User Dashboard (protected by auth)
 Route::middleware('auth')->group(function () {
-   Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-   Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-   Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-   Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 // Admin Routes (protected by admin middleware)
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-   Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-   Route::get('/users', [AdminController::class, 'users'])->name('users');
-   Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
+    Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
 });
 
 require __DIR__.'/auth.php';

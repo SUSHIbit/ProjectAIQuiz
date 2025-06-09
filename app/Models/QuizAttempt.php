@@ -165,4 +165,39 @@ class QuizAttempt extends Model
         
         $this->calculateScore();
     }
+
+    // NEW: Timer-related methods
+    public function hasTimer(): bool
+    {
+        return !is_null($this->time_limit);
+    }
+
+    public function getTimerDurationInMinutesAttribute(): ?int
+    {
+        return $this->time_limit ? floor($this->time_limit / 60) : null;
+    }
+
+    public function getFormattedTimeRemainingAttribute(): ?string
+    {
+        $remaining = $this->time_remaining;
+        
+        if (is_null($remaining)) {
+            return null;
+        }
+
+        $minutes = floor($remaining / 60);
+        $seconds = $remaining % 60;
+        
+        return sprintf('%02d:%02d', $minutes, $seconds);
+    }
+
+    public function autoSubmitIfTimedOut(): bool
+    {
+        if ($this->hasTimedOut() && $this->isInProgress()) {
+            $this->markAsAbandoned();
+            return true;
+        }
+        
+        return false;
+    }
 }

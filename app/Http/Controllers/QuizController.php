@@ -136,6 +136,7 @@ class QuizController extends Controller
             // Store generated questions in session for editing
             session(['generated_questions' => $generatedQuestions]);
             session(['file_info' => $uploadedFile]);
+            session(['question_count_used' => $questionCount]); // Store for later use
 
             return response()->json([
                 'success' => true,
@@ -212,15 +213,22 @@ class QuizController extends Controller
         try {
             DB::beginTransaction();
 
+            $user = auth()->user();
+            $questionCountUsed = session('question_count_used', count($request->questions));
+            
+            // Determine max questions allowed based on user tier when quiz was generated
+            $maxQuestionsAllowed = $user->isFree() ? 10 : max(10, $questionCountUsed);
+
             // Create the quiz
             $quiz = Quiz::create([
-                'user_id' => auth()->id(),
+                'user_id' => $user->id,
                 'title' => $request->title,
                 'subject' => $request->subject,
                 'topic' => $request->topic,
                 'description' => $request->description,
                 'source_type' => 'ai',
                 'total_questions' => count($request->questions),
+                'max_questions_allowed' => $maxQuestionsAllowed,
             ]);
 
             // Create quiz items
@@ -241,9 +249,10 @@ class QuizController extends Controller
             DB::commit();
 
             // Clean up session data
-            session()->forget(['generated_questions', 'file_info', 'uploaded_file']);
+            session()->forget(['generated_questions', 'file_info', 'uploaded_file', 'question_count_used']);
 
             // Clean up uploaded file
+            $uploadedFile = session('uploaded_file');
             if (isset($uploadedFile['path']) && Storage::exists($uploadedFile['path'])) {
                 Storage::delete($uploadedFile['path']);
             }
