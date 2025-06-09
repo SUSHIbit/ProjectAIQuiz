@@ -200,4 +200,97 @@ class QuizAttempt extends Model
         
         return false;
     }
+
+    public function getPerformanceInsights()
+    {
+        return [
+            'speed_rating' => $this->getSpeedRating(),
+            'accuracy_rating' => $this->getAccuracyRating(),
+            'difficulty_assessment' => $this->getDifficultyAssessment(),
+            'improvement_suggestions' => $this->getImprovementSuggestions(),
+        ];
+    }
+
+    public function getSpeedRating()
+    {
+        if (!$this->time_taken || !$this->total_questions) return 'N/A';
+        
+        $averageTimePerQuestion = $this->time_taken / $this->total_questions;
+        
+        if ($averageTimePerQuestion < 30) return 'Very Fast';
+        if ($averageTimePerQuestion < 60) return 'Fast';
+        if ($averageTimePerQuestion < 120) return 'Normal';
+        if ($averageTimePerQuestion < 180) return 'Slow';
+        return 'Very Slow';
+    }
+
+    public function getAccuracyRating()
+    {
+        $percentage = $this->score_percentage;
+        
+        if ($percentage >= 90) return 'Excellent';
+        if ($percentage >= 80) return 'Good';
+        if ($percentage >= 70) return 'Average';
+        if ($percentage >= 60) return 'Below Average';
+        return 'Needs Improvement';
+    }
+
+    public function getDifficultyAssessment()
+    {
+        // Compare with other users' performance on the same quiz
+        $averageScore = QuizAttempt::where('quiz_id', $this->quiz_id)
+            ->where('status', 'completed')
+            ->where('id', '!=', $this->id)
+            ->avg('score');
+        
+        if (!$averageScore) return 'Insufficient Data';
+        
+        $difference = $this->score - $averageScore;
+        
+        if ($difference > 15) return 'Easy for You';
+        if ($difference > 5) return 'Slightly Easy';
+        if ($difference > -5) return 'Average Difficulty';
+        if ($difference > -15) return 'Challenging';
+        return 'Very Challenging';
+    }
+
+    public function getImprovementSuggestions()
+    {
+        $suggestions = [];
+        
+        if ($this->score_percentage < 70) {
+            $suggestions[] = 'Review the topic materials before retaking';
+            $suggestions[] = 'Focus on understanding key concepts';
+        }
+        
+        if ($this->time_taken && $this->time_taken > ($this->total_questions * 120)) {
+            $suggestions[] = 'Practice time management during quizzes';
+            $suggestions[] = 'Try using the timer feature to improve speed';
+        }
+        
+        if ($this->score_percentage >= 90) {
+            $suggestions[] = 'Excellent work! Try more challenging topics';
+            $suggestions[] = 'Consider helping others or creating your own quizzes';
+        }
+        
+        return $suggestions;
+    }
+
+    // Scope for analytics queries
+    public function scopeInDateRange($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('created_at', [$startDate, $endDate]);
+    }
+
+    public function scopeWithGoodScore($query, $minScore = 70)
+    {
+        return $query->where('score', '>=', $minScore);
+    }
+
+    public function scopeBySubject($query, $subject)
+    {
+        return $query->whereHas('quiz', function ($q) use ($subject) {
+            $q->where('subject', $subject);
+        });
+    }
 }

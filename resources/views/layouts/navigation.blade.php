@@ -14,6 +14,7 @@
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     @auth
                         @if(auth()->user()->isAdmin())
+                            <!-- Admin Navigation -->
                             <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                                 {{ __('Admin Dashboard') }}
                             </x-nav-link>
@@ -23,7 +24,11 @@
                             <x-nav-link :href="route('admin.payments')" :active="request()->routeIs('admin.payments')">
                                 {{ __('Payments') }}
                             </x-nav-link>
+                            <x-nav-link :href="route('admin.analytics')" :active="request()->routeIs('admin.analytics')">
+                                {{ __('Admin Analytics') }}
+                            </x-nav-link>
                         @else
+                            <!-- User Navigation -->
                             <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                                 {{ __('Dashboard') }}
                             </x-nav-link>
@@ -35,6 +40,9 @@
                             </x-nav-link>
                             <x-nav-link :href="route('welcome')" :active="request()->routeIs('welcome')">
                                 {{ __('AI Generator') }}
+                            </x-nav-link>
+                            <x-nav-link :href="route('analytics.dashboard')" :active="request()->routeIs('analytics.*')">
+                                {{ __('Analytics') }}
                             </x-nav-link>
                             @if(auth()->user()->isPremium())
                                 <x-nav-link href="#" :active="false">
@@ -84,13 +92,47 @@
                             {{ __('Profile') }}
                         </x-dropdown-link>
 
-                        @if(auth()->user()->isFree())
-                            <x-dropdown-link :href="route('tier.upgrade')">
+                        @if(auth()->user()->isUser())
+                            <!-- Analytics for Users -->
+                            <x-dropdown-link :href="route('analytics.dashboard')">
                                 <div class="flex items-center">
-                                    <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                    <svg class="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                     </svg>
-                                    <span class="text-green-600 font-medium">{{ __('Upgrade to Premium') }}</span>
+                                    <span class="text-purple-600">{{ __('My Analytics') }}</span>
+                                </div>
+                            </x-dropdown-link>
+
+                            @if(auth()->user()->isFree())
+                                <x-dropdown-link :href="route('tier.upgrade')">
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                        </svg>
+                                        <span class="text-green-600 font-medium">{{ __('Upgrade to Premium') }}</span>
+                                    </div>
+                                </x-dropdown-link>
+                            @else
+                                <!-- Premium Badge -->
+                                <x-dropdown-link href="#" class="cursor-default">
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                        </svg>
+                                        <span class="text-yellow-600 font-medium">{{ __('Premium Member') }}</span>
+                                    </div>
+                                </x-dropdown-link>
+                            @endif
+                        @endif
+
+                        @if(auth()->user()->isAdmin())
+                            <!-- Admin Analytics -->
+                            <x-dropdown-link :href="route('admin.analytics')">
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span class="text-blue-600">{{ __('Platform Analytics') }}</span>
                                 </div>
                             </x-dropdown-link>
                         @endif
@@ -135,6 +177,7 @@
         <div class="pt-2 pb-3 space-y-1">
             @auth
                 @if(auth()->user()->isAdmin())
+                    <!-- Admin Responsive Navigation -->
                     <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                         {{ __('Admin Dashboard') }}
                     </x-responsive-nav-link>
@@ -144,7 +187,11 @@
                     <x-responsive-nav-link :href="route('admin.payments')" :active="request()->routeIs('admin.payments')">
                         {{ __('Payments') }}
                     </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.analytics')" :active="request()->routeIs('admin.analytics')">
+                        {{ __('Platform Analytics') }}
+                    </x-responsive-nav-link>
                 @else
+                    <!-- User Responsive Navigation -->
                     <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-responsive-nav-link>
@@ -156,6 +203,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('welcome')" :active="request()->routeIs('welcome')">
                         {{ __('AI Generator') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('analytics.dashboard')" :active="request()->routeIs('analytics.*')">
+                        {{ __('Analytics') }}
                     </x-responsive-nav-link>
                     @if(auth()->user()->isPremium())
                         <x-responsive-nav-link href="#" :active="false">
@@ -192,13 +242,47 @@
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
 
-                @if(auth()->user()->isFree())
-                    <x-responsive-nav-link :href="route('tier.upgrade')">
+                @if(auth()->user()->isUser())
+                    <!-- User Analytics Link -->
+                    <x-responsive-nav-link :href="route('analytics.dashboard')">
                         <div class="flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                            <svg class="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                             </svg>
-                            <span class="text-green-600 font-medium">{{ __('Upgrade to Premium') }}</span>
+                            <span class="text-purple-600">{{ __('My Analytics') }}</span>
+                        </div>
+                    </x-responsive-nav-link>
+
+                    @if(auth()->user()->isFree())
+                        <x-responsive-nav-link :href="route('tier.upgrade')">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                </svg>
+                                <span class="text-green-600 font-medium">{{ __('Upgrade to Premium') }}</span>
+                            </div>
+                        </x-responsive-nav-link>
+                    @else
+                        <!-- Premium Member Badge -->
+                        <div class="px-4 py-2">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                </svg>
+                                <span class="text-yellow-600 font-medium text-sm">{{ __('Premium Member') }}</span>
+                            </div>
+                        </div>
+                    @endif
+                @endif
+
+                @if(auth()->user()->isAdmin())
+                    <!-- Admin Analytics Link -->
+                    <x-responsive-nav-link :href="route('admin.analytics')">
+                        <div class="flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="text-blue-600">{{ __('Platform Analytics') }}</span>
                         </div>
                     </x-responsive-nav-link>
                 @endif
@@ -213,6 +297,18 @@
                         {{ __('Log Out') }}
                     </x-responsive-nav-link>
                 </form>
+            </div>
+        </div>
+        @else
+        <!-- Guest Responsive Menu -->
+        <div class="pt-4 pb-1 border-t border-gray-200">
+            <div class="space-y-1">
+                <x-responsive-nav-link :href="route('login')">
+                    {{ __('Login') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('register')">
+                    {{ __('Register') }}
+                </x-responsive-nav-link>
             </div>
         </div>
         @endauth

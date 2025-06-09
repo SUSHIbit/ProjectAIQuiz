@@ -105,4 +105,74 @@ class User extends Authenticatable
     {
         return $this->hasMany(QuizAttempt::class);
     }
+
+    public function getAnalyticsData()
+    {
+        $completedAttempts = $this->quizAttempts()
+            ->where('status', 'completed')
+            ->with('quiz')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return [
+            'total_attempts' => $completedAttempts->count(),
+            'average_score' => round($completedAttempts->avg('score'), 1),
+            'best_score' => $completedAttempts->max('score'),
+            'total_time_spent' => $completedAttempts->sum('time_taken'),
+            'subjects_studied' => $completedAttempts->pluck('quiz.subject')->unique()->count(),
+            'improvement_rate' => $this->calculateImprovementRate($completedAttempts),
+        ];
+    }
+
+    public function getSubjectPerformance()
+    {
+        return $this->quizAttempts()
+            ->where('status', 'completed')
+            ->with('quiz')
+            ->get()
+            ->groupBy('quiz.subject')
+            ->map(function ($attempts) {
+                return [
+                    'subject' => $attempts->first()->quiz->subject,
+                    'attempts' => $attempts->count(),
+                    'average_score' => round($attempts->avg('score'), 1),
+                    'best_score' => $attempts->max('score'),
+                    'latest_attempt' => $attempts->sortByDesc('created_at')->first()->created_at,
+                ];
+            })
+            ->values();
+    }
+
+    public function getRecentPerformanceTrend($days = 30)
+    {
+        return $this->quizAttempts()
+            ->where('status', 'completed')
+            ->where('created_at', '>=', now()->subDays($days))
+            ->orderBy('created_at')
+            ->get()
+            ->groupBy(function ($attempt) {
+                return $attempt->created_at->format('Y-m-d');
+            })
+            ->map(function ($dayAttempts, $date) {
+                return [
+                    'date' => $date,
+                    'average_score' => round($dayAttempts->avg('score'), 1),
+                    'attempts' => $dayAttempts->count(),
+                ];
+            })
+            ->values();
+    }
+
+    private function calculateImprovementRate($attempts)
+    {
+        if ($attempts->count() < 2) return 0;
+        
+        $firstHalf = $attempts->reverse()->take(ceil($attempts->count() / 2));
+        $secondHalf = $attempts->take(floor($attempts->count() / 2));
+        
+        $firstAvg = $firstHalf->avg('score');
+        $secondAvg = $secondHalf->avg('score');
+        
+        return round($secondAvg - $firstAvg, 1);
+    }
 }

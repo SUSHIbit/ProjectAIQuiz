@@ -1,14 +1,15 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\WelcomeController;
-use App\Http\Controllers\TierController;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuizController;
+use App\Http\Controllers\TierController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManualQuizController;
 use App\Http\Controllers\QuizAttemptController;
-use Illuminate\Support\Facades\Route;
 
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 
@@ -74,6 +75,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
+});
+
+Route::middleware(['auth'])->group(function () {
+    // User Analytics
+    Route::get('/analytics', [AnalyticsController::class, 'userDashboard'])->name('analytics.dashboard');
+    Route::get('/analytics/subject', [AnalyticsController::class, 'subjectAnalytics'])->name('analytics.subject');
+    Route::get('/analytics/export', [AnalyticsController::class, 'exportUserData'])->name('analytics.export');
+    
+    // Admin Analytics (Protected by admin middleware)
+    Route::middleware(['admin'])->group(function () {
+        Route::get('/admin/analytics', [AnalyticsController::class, 'adminAnalytics'])->name('admin.analytics');
+    });
 });
 
 require __DIR__.'/auth.php';
