@@ -42,12 +42,13 @@
                         </div>
                         
                         <div class="flex space-x-2">
-                            <button class="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                            <!-- UPDATED: Add Take Quiz Button -->
+                            <a href="{{ route('quiz.attempt.start', $quiz->id) }}" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-3-4V5a1 1 0 011-1h1a1 1 0 011 1v2M7 7V4a1 1 0 011-1h8a1 1 0 011 1v3"></path>
                                 </svg>
                                 Take Quiz
-                            </button>
+                            </a>
                             @if($quiz->isManual())
                                 <a href="{{ route('manual-quiz.edit', $quiz->id) }}" class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,6 +65,41 @@
                             </button>
                         </div>
                     </div>
+
+                    <!-- NEW: Add Quiz Statistics Section -->
+                    @if($quiz->hasBeenTakenBy(auth()->user()))
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-md font-medium text-gray-900 mb-3">Your Performance</h3>
+                        @php
+                            $bestAttempt = $quiz->getBestAttemptFor(auth()->user());
+                            $latestAttempt = $quiz->getLatestAttemptFor(auth()->user());
+                            $attemptCount = $quiz->getAttemptCountFor(auth()->user());
+                        @endphp
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="text-center p-3 bg-blue-50 rounded-lg">
+                                <div class="text-lg font-bold text-blue-600">{{ $attemptCount }}</div>
+                                <div class="text-xs text-gray-600">Attempts</div>
+                            </div>
+                            @if($bestAttempt)
+                            <div class="text-center p-3 bg-green-50 rounded-lg">
+                                <div class="text-lg font-bold text-green-600">{{ $bestAttempt->score_percentage }}%</div>
+                                <div class="text-xs text-gray-600">Best Score</div>
+                            </div>
+                            @endif
+                            @if($latestAttempt)
+                            <div class="text-center p-3 bg-purple-50 rounded-lg">
+                                <div class="text-lg font-bold text-purple-600">{{ $latestAttempt->score_percentage }}%</div>
+                                <div class="text-xs text-gray-600">Latest Score</div>
+                            </div>
+                            @endif
+                        </div>
+                        <div class="mt-3 text-center">
+                            <a href="{{ route('quiz.attempt.history', $quiz->id) }}" class="text-sm text-blue-600 hover:text-blue-500">
+                                View full attempt history →
+                            </a>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
 

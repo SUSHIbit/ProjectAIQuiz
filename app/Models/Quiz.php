@@ -40,6 +40,12 @@ class Quiz extends Model
         return $this->hasMany(QuizAttempt::class);
     }
 
+    // NEW: Add this relationship
+    public function userAttempts()
+    {
+        return $this->hasMany(QuizAttempt::class)->where('user_id', auth()->id());
+    }
+
     // Scopes
     public function scopeForUser($query, $userId)
     {
@@ -88,5 +94,43 @@ class Quiz extends Model
         return strlen($this->description) > 100 
             ? substr($this->description, 0, 100) . '...' 
             : $this->description;
+    }
+
+    // NEW: Add these methods
+    public function canBeTakenBy(User $user): bool
+    {
+        // Users can take their own quizzes multiple times
+        // Later we can add sharing/public quiz features
+        return $this->user_id === $user->id;
+    }
+
+    public function hasBeenTakenBy(User $user): bool
+    {
+        return $this->quizAttempts()->where('user_id', $user->id)->exists();
+    }
+
+    public function getBestAttemptFor(User $user): ?QuizAttempt
+    {
+        return $this->quizAttempts()
+            ->where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->orderBy('score', 'desc')
+            ->first();
+    }
+
+    public function getLatestAttemptFor(User $user): ?QuizAttempt
+    {
+        return $this->quizAttempts()
+            ->where('user_id', $user->id)
+            ->latest()
+            ->first();
+    }
+
+    public function getAttemptCountFor(User $user): int
+    {
+        return $this->quizAttempts()
+            ->where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->count();
     }
 }

@@ -99,4 +99,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(Quiz::class);
     }
+
+    // NEW: Add this relationship
+    public function quizAttempts()
+    {
+        return $this->hasMany(QuizAttempt::class);
+    }
 }
