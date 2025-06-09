@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Smalot\PdfParser\Parser;
 
 class FileProcessorService
 {
@@ -29,7 +30,8 @@ class FileProcessorService
         } catch (\Exception $e) {
             Log::error('File processing error', [
                 'file' => $filePath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             throw $e;
         }
@@ -37,236 +39,185 @@ class FileProcessorService
 
     private function extractFromPdf(string $filePath): string
     {
-        // First try to read the file and validate it exists and is readable
-        if (!is_readable($filePath)) {
-            throw new \Exception('PDF file is not readable');
-        }
-
-        $fileSize = filesize($filePath);
-        if ($fileSize === false || $fileSize === 0) {
-            throw new \Exception('PDF file is empty or corrupted');
-        }
-
-        // Try multiple extraction methods
-        $content = '';
-        
-        // Method 1: Try advanced PDF text extraction
         try {
-            $content = $this->extractPdfContentAdvanced($filePath);
-        } catch (\Exception $e) {
-            Log::warning('Advanced PDF extraction failed', ['error' => $e->getMessage()]);
-        }
-
-        // Method 2: If advanced method fails, try basic extraction
-        if (empty(trim($content))) {
-            try {
-                $content = $this->extractPdfContentBasic($filePath);
-            } catch (\Exception $e) {
-                Log::warning('Basic PDF extraction failed', ['error' => $e->getMessage()]);
+            // Validate file exists and is readable
+            if (!is_readable($filePath)) {
+                throw new \Exception('PDF file is not readable or accessible');
             }
-        }
 
-        // Method 3: If both fail, try simple text search
-        if (empty(trim($content))) {
-            $content = $this->extractPdfContentSimple($filePath);
-        }
-        
-        if (empty(trim($content))) {
-            throw new \Exception('No readable text content found in PDF file. The PDF might contain only images or scanned content.');
-        }
-
-        return $content;
-    }
-
-    private function extractPdfContentAdvanced(string $filePath): string
-    {
-        $handle = fopen($filePath, 'rb');
-        if (!$handle) {
-            throw new \Exception('Cannot open PDF file');
-        }
-
-        $content = '';
-        $text = fread($handle, filesize($filePath));
-        fclose($handle);
-
-        // Look for text streams in PDF
-        $streamPattern = '/stream\s*\n(.*?)\nendstream/s';
-        if (preg_match_all($streamPattern, $text, $streamMatches)) {
-            foreach ($streamMatches[1] as $stream) {
-                // Try to decode the stream
-                $decodedStream = $this->decodePdfStream($stream);
-                $extractedText = $this->extractTextFromStream($decodedStream);
-                if (!empty($extractedText)) {
-                    $content .= $extractedText . ' ';
-                }
+            $fileSize = filesize($filePath);
+            if ($fileSize === false || $fileSize === 0) {
+                throw new \Exception('PDF file is empty or corrupted');
             }
-        }
 
-        return trim($content);
-    }
-
-    private function extractPdfContentBasic(string $filePath): string
-    {
-        $handle = fopen($filePath, 'rb');
-        if (!$handle) {
-            throw new \Exception('Cannot open PDF file');
-        }
-
-        $content = '';
-        $text = fread($handle, filesize($filePath));
-        fclose($handle);
-
-        // Look for text between BT and ET operators
-        if (preg_match_all('/BT\s*(.*?)\s*ET/s', $text, $matches)) {
-            foreach ($matches[1] as $match) {
-                // Extract text from PDF text showing operators
-                if (preg_match_all('/\[(.*?)\]\s*TJ/s', $match, $textMatches)) {
-                    foreach ($textMatches[1] as $textMatch) {
-                        $content .= $this->cleanPdfText($textMatch) . ' ';
-                    }
-                }
-                // Also try Tj operator
-                if (preg_match_all('/\((.*?)\)\s*Tj/s', $match, $textMatches)) {
-                    foreach ($textMatches[1] as $textMatch) {
-                        $content .= $this->cleanPdfText($textMatch) . ' ';
-                    }
-                }
-                // Try TD and Td operators with text
-                if (preg_match_all('/\((.*?)\)\s*T[dD]/s', $match, $textMatches)) {
-                    foreach ($textMatches[1] as $textMatch) {
-                        $content .= $this->cleanPdfText($textMatch) . ' ';
-                    }
-                }
-            }
-        }
-
-        return trim($content);
-    }
-
-    private function extractPdfContentSimple(string $filePath): string
-    {
-        $handle = fopen($filePath, 'rb');
-        if (!$handle) {
-            throw new \Exception('Cannot open PDF file');
-        }
-
-        $text = fread($handle, filesize($filePath));
-        fclose($handle);
-
-        // Remove binary data and extract readable text
-        $content = '';
-        
-        // Split by common PDF delimiters and extract readable text
-        $chunks = preg_split('/[\x00-\x1F\x7F-\xFF]+/', $text);
-        
-        foreach ($chunks as $chunk) {
-            $chunk = trim($chunk);
+            // Use smalot/pdfparser for better PDF text extraction
+            $parser = new Parser();
+            $pdf = $parser->parseFile($filePath);
             
-            // Filter out PDF commands and keep actual content
-            if (strlen($chunk) > 3 && 
-                !preg_match('/^(obj|endobj|stream|endstream|xref|trailer|%%PDF|startxref|\/[A-Za-z]+|[0-9\s]+R|<[<>]+>)/', $chunk) &&
-                preg_match('/[a-zA-Z]{2,}/', $chunk)) {
-                
-                // Clean up the text
-                $cleanChunk = preg_replace('/[^\w\s\.,;:!?\-()\'\"]+/', ' ', $chunk);
-                $cleanChunk = preg_replace('/\s+/', ' ', $cleanChunk);
-                $cleanChunk = trim($cleanChunk);
-                
-                if (strlen($cleanChunk) > 3) {
-                    $content .= $cleanChunk . ' ';
+            // Extract text from all pages
+            $text = $pdf->getText();
+            
+            if (empty(trim($text))) {
+                // Try alternative extraction method
+                $text = $this->extractPdfAlternative($pdf);
+            }
+            
+            if (empty(trim($text))) {
+                throw new \Exception('No readable text content found in PDF. The PDF might contain only images, scanned content, or be password-protected. Please try uploading a text-based PDF document.');
+            }
+
+            // Clean up the extracted text
+            $cleanedText = $this->cleanExtractedText($text);
+            
+            if (strlen($cleanedText) < 50) {
+                throw new \Exception('PDF contains very little readable text. Please ensure your PDF has substantial text content for quiz generation.');
+            }
+
+            return $cleanedText;
+
+        } catch (\Exception $e) {
+            $errorMessage = $e->getMessage();
+            
+            // Provide more specific error messages
+            if (strpos($errorMessage, 'Unable to find') !== false || strpos($errorMessage, 'Cannot open') !== false) {
+                throw new \Exception('Cannot open PDF file. The file might be corrupted, password-protected, or use an unsupported PDF format.');
+            }
+            
+            if (strpos($errorMessage, 'No readable text') !== false) {
+                throw new \Exception('This PDF appears to contain only images or scanned content. Please upload a text-based PDF document.');
+            }
+            
+            throw new \Exception('Error processing PDF: ' . $errorMessage);
+        }
+    }
+
+    private function extractPdfAlternative($pdf): string
+    {
+        try {
+            $text = '';
+            $pages = $pdf->getPages();
+            
+            foreach ($pages as $page) {
+                $pageText = $page->getText();
+                if (!empty(trim($pageText))) {
+                    $text .= $pageText . "\n";
                 }
             }
+            
+            return $text;
+        } catch (\Exception $e) {
+            Log::warning('Alternative PDF extraction failed', ['error' => $e->getMessage()]);
+            return '';
         }
-
-        return trim($content);
-    }
-
-    private function decodePdfStream(string $stream): string
-    {
-        // Try to decompress if it's compressed
-        if (function_exists('gzuncompress')) {
-            try {
-                $decompressed = gzuncompress($stream);
-                if ($decompressed !== false) {
-                    return $decompressed;
-                }
-            } catch (\Exception $e) {
-                // Compression failed, continue with original
-            }
-        }
-
-        return $stream;
-    }
-
-    private function extractTextFromStream(string $stream): string
-    {
-        $text = '';
-        
-        // Look for text showing operations in the stream
-        if (preg_match_all('/\((.*?)\)\s*T[jd]/s', $stream, $matches)) {
-            foreach ($matches[1] as $match) {
-                $text .= $this->cleanPdfText($match) . ' ';
-            }
-        }
-
-        // Look for array text showing operations
-        if (preg_match_all('/\[(.*?)\]\s*TJ/s', $stream, $matches)) {
-            foreach ($matches[1] as $match) {
-                $text .= $this->cleanPdfText($match) . ' ';
-            }
-        }
-
-        return trim($text);
-    }
-
-    private function cleanPdfText(string $text): string
-    {
-        // Remove PDF escape sequences
-        $text = str_replace(['\\(', '\\)', '\\\\'], ['(', ')', '\\'], $text);
-        
-        // Remove non-printable characters but keep spaces and common punctuation
-        $text = preg_replace('/[^\x20-\x7E]/', ' ', $text);
-        
-        // Clean up multiple spaces
-        $text = preg_replace('/\s+/', ' ', $text);
-        
-        return trim($text);
     }
 
     private function extractFromDocx(string $filePath): string
     {
         if (!is_readable($filePath)) {
-            throw new \Exception('DOCX file is not readable');
+            throw new \Exception('DOCX file is not readable or accessible');
         }
 
-        // Basic DOCX text extraction
-        $zip = new \ZipArchive();
-        if ($zip->open($filePath) !== TRUE) {
-            throw new \Exception('Cannot open DOCX file - file may be corrupted');
-        }
+        try {
+            $zip = new \ZipArchive();
+            $result = $zip->open($filePath);
+            
+            if ($result !== TRUE) {
+                throw new \Exception('Cannot open DOCX file. The file might be corrupted or use an unsupported format.');
+            }
 
-        $content = '';
-        $documentXml = $zip->getFromName('word/document.xml');
-        
-        if ($documentXml !== false) {
-            // Remove XML tags and extract text
-            $content = strip_tags($documentXml);
-            $content = html_entity_decode($content);
-            $content = preg_replace('/\s+/', ' ', $content);
-        } else {
+            // Extract document content
+            $content = '';
+            
+            // Try to get document.xml
+            $documentXml = $zip->getFromName('word/document.xml');
+            if ($documentXml !== false) {
+                $content .= $this->extractTextFromXml($documentXml);
+            }
+            
+            // Try to get header files
+            for ($i = 1; $i <= 3; $i++) {
+                $headerXml = $zip->getFromName("word/header{$i}.xml");
+                if ($headerXml !== false) {
+                    $content .= ' ' . $this->extractTextFromXml($headerXml);
+                }
+            }
+            
+            // Try to get footer files
+            for ($i = 1; $i <= 3; $i++) {
+                $footerXml = $zip->getFromName("word/footer{$i}.xml");
+                if ($footerXml !== false) {
+                    $content .= ' ' . $this->extractTextFromXml($footerXml);
+                }
+            }
+            
             $zip->close();
-            throw new \Exception('Cannot read document content from DOCX file');
-        }
-        
-        $zip->close();
 
-        $content = trim($content);
-        
-        if (empty($content)) {
-            throw new \Exception('No readable text content found in DOCX file');
-        }
+            if (empty(trim($content))) {
+                throw new \Exception('No readable text content found in DOCX file');
+            }
 
-        return $content;
+            // Clean up the extracted text
+            $cleanedText = $this->cleanExtractedText($content);
+            
+            if (strlen($cleanedText) < 50) {
+                throw new \Exception('DOCX contains very little readable text. Please ensure your document has substantial text content for quiz generation.');
+            }
+
+            return $cleanedText;
+
+        } catch (\Exception $e) {
+            if ($e->getMessage() === 'Cannot open DOCX file. The file might be corrupted or use an unsupported format.') {
+                throw $e;
+            }
+            throw new \Exception('Error processing DOCX file: ' . $e->getMessage());
+        }
+    }
+
+    private function extractTextFromXml(string $xml): string
+    {
+        try {
+            // Load XML and extract text content
+            $dom = new \DOMDocument();
+            $dom->loadXML($xml);
+            
+            // Get all text nodes
+            $xpath = new \DOMXPath($dom);
+            $textNodes = $xpath->query('//w:t');
+            
+            $text = '';
+            foreach ($textNodes as $node) {
+                $text .= $node->nodeValue . ' ';
+            }
+            
+            return $text;
+        } catch (\Exception $e) {
+            // Fallback to simple strip_tags
+            $text = strip_tags($xml);
+            $text = html_entity_decode($text);
+            return $text;
+        }
+    }
+
+    private function cleanExtractedText(string $text): string
+    {
+        // Remove excessive whitespace
+        $text = preg_replace('/\s+/', ' ', $text);
+        
+        // Remove non-printable characters but keep basic punctuation
+        $text = preg_replace('/[^\x20-\x7E\x0A\x0D]/', ' ', $text);
+        
+        // Clean up multiple spaces again
+        $text = preg_replace('/\s+/', ' ', $text);
+        
+        // Remove very short "words" that are likely artifacts
+        $words = explode(' ', $text);
+        $cleanWords = array_filter($words, function($word) {
+            $word = trim($word);
+            // Keep words that are at least 2 characters or are single letters/numbers
+            return strlen($word) >= 2 || ctype_alnum($word);
+        });
+        
+        return trim(implode(' ', $cleanWords));
     }
 
     public function validateFile(string $filePath): bool
@@ -316,47 +267,62 @@ class FileProcessorService
             return $validation;
         }
 
+        // Count words and characters
         $wordCount = str_word_count($content);
         $characterCount = strlen($content);
 
         $validation['wordCount'] = $wordCount;
         $validation['characterCount'] = $characterCount;
 
-        // More lenient word count requirement
-        if ($wordCount < 20) {
+        // More lenient requirements for word count
+        if ($wordCount < 15) {
             $validation['isValid'] = false;
-            $validation['errors'][] = "Content too short - extracted only {$wordCount} words. Need at least 20 words for meaningful quiz generation.";
-        } elseif ($wordCount < 50) {
+            $validation['errors'][] = "Content too short - extracted only {$wordCount} words. Need at least 15 words for meaningful quiz generation.";
+        } elseif ($wordCount < 30) {
             $validation['warnings'][] = "Content is quite short ({$wordCount} words). Consider uploading a document with more content for better quiz generation.";
         }
 
-        // More lenient character count requirement
-        if ($characterCount < 100) {
+        // Character count validation
+        if ($characterCount < 75) {
             $validation['isValid'] = false;
             $validation['errors'][] = "Content too brief - extracted only {$characterCount} characters. Need substantial text content.";
         }
 
-        // More lenient readable character ratio
+        // Calculate readable character ratio
         $alphaNumericCount = preg_match_all('/[a-zA-Z0-9]/', $content);
         $readableRatio = $characterCount > 0 ? $alphaNumericCount / $characterCount : 0;
         $validation['readableRatio'] = $readableRatio;
 
-        if ($readableRatio < 0.3) {
+        // More lenient readable ratio requirements
+        if ($readableRatio < 0.25) {
             $validation['isValid'] = false;
-            $validation['errors'][] = "Content appears to contain mostly non-readable characters (only {$alphaNumericCount} readable characters out of {$characterCount} total). The file might be corrupted, password-protected, or contain mostly images.";
-        } elseif ($readableRatio < 0.5) {
+            $validation['errors'][] = "Content appears to contain mostly non-readable characters. The file might be corrupted, password-protected, or contain mostly images.";
+        } elseif ($readableRatio < 0.4) {
             $validation['warnings'][] = "Content has a low ratio of readable text. Quiz quality might be affected.";
         }
 
-        // Check for meaningful words
-        $words = str_word_count($content, 1);
-        $meaningfulWords = array_filter($words, function($word) {
-            return strlen($word) > 2 && ctype_alpha($word);
+        // Check for meaningful sentences
+        $sentences = preg_split('/[.!?]+/', $content);
+        $meaningfulSentences = array_filter($sentences, function($sentence) {
+            $sentence = trim($sentence);
+            return strlen($sentence) > 10 && str_word_count($sentence) >= 3;
         });
 
-        if (count($meaningfulWords) < 10) {
+        if (count($meaningfulSentences) < 3) {
             $validation['isValid'] = false;
-            $validation['errors'][] = "Content contains very few meaningful words. The file might not be suitable for quiz generation.";
+            $validation['errors'][] = "Content contains very few complete sentences. The file might not be suitable for quiz generation.";
+        }
+
+        // Check for repeated patterns that might indicate extraction errors
+        $words = str_word_count($content, 1);
+        if (count($words) > 0) {
+            $wordCounts = array_count_values($words);
+            $maxRepeats = max($wordCounts);
+            $totalWords = count($words);
+            
+            if ($maxRepeats > ($totalWords * 0.3) && $maxRepeats > 10) {
+                $validation['warnings'][] = "Content contains many repeated words, which might indicate extraction errors.";
+            }
         }
 
         return $validation;
