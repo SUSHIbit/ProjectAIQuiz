@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\TierController;
 use App\Http\Controllers\QuizController;
+use App\Http\Controllers\ManualQuizController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -34,6 +35,15 @@ Route::middleware(['auth', 'tier'])->prefix('quiz')->name('quiz.')->group(functi
 Route::middleware('auth')->prefix('quiz')->name('quiz.')->group(function () {
     Route::get('/', [QuizController::class, 'index'])->name('index');
     Route::get('/{quiz}', [QuizController::class, 'show'])->name('show');
+});
+
+// Manual Quiz Creator routes (available to all authenticated users)
+Route::middleware('auth')->prefix('manual-quiz')->name('manual-quiz.')->group(function () {
+    Route::get('/create', [ManualQuizController::class, 'create'])->name('create');
+    Route::post('/store', [ManualQuizController::class, 'store'])->name('store');
+    Route::get('/{quiz}/edit', [ManualQuizController::class, 'edit'])->name('edit');
+    Route::put('/{quiz}', [ManualQuizController::class, 'update'])->name('update');
+    Route::delete('/{quiz}', [ManualQuizController::class, 'destroy'])->name('destroy');
 });
 
 // User Dashboard (protected by auth)

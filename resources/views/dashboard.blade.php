@@ -1,3 +1,4 @@
+<!-- resources/views/dashboard.blade.php -->
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -76,6 +77,34 @@
 
             <!-- Feature Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Manual Quiz Creator -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="bg-green-100 p-3 rounded-full">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-medium text-gray-900">Manual Quiz Creator</h3>
+                                <p class="text-sm text-gray-500">Create custom quizzes manually</p>
+                                <p class="text-xs text-green-600 mt-1">Available for all users</p>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <a href="{{ route('manual-quiz.create') }}" class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-500">
+                                Create Quiz
+                                <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- AI Quiz Generator -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg {{ $user->isFree() && $user->question_attempts <= 0 ? 'opacity-60' : '' }}">
                     <div class="p-6">
@@ -120,34 +149,6 @@
                     </div>
                 </div>
 
-                <!-- Manual Quiz Creator -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <div class="bg-green-100 p-3 rounded-full">
-                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-medium text-gray-900">Manual Quiz Creator</h3>
-                                <p class="text-sm text-gray-500">Create custom quizzes manually</p>
-                                <p class="text-xs text-green-600 mt-1">Available for all users</p>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <a href="#" class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-500">
-                                Create Quiz
-                                <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- My Quizzes -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
@@ -179,173 +180,173 @@
                 <!-- Flashcards (Premium only) -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg border-2 border-green-200">
                     <div class="p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <div class="bg-yellow-100 p-3 rounded-full">
-                                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m0 0V1a1 1 0 011-1h2a1 1 0 011 1v18a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1h2a1 1 0 011 1v3"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-medium text-gray-900">Flashcards</h3>
-                                <p class="text-sm text-gray-500">Create and study with flashcards</p>
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
-                                    Premium Only
-                                </span>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <a href="#" class="inline-flex items-center text-sm font-medium text-yellow-600 hover:text-yellow-500">
-                                Create Flashcards
-                                <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                @else
-                <!-- Flashcards (Locked for Free users) -->
-                <div class="bg-gray-50 overflow-hidden shadow-sm sm:rounded-lg border-2 border-gray-200 opacity-75">
-                    <div class="p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <div class="bg-gray-200 p-3 rounded-full">
-                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-medium text-gray-500">Flashcards</h3>
-                                <p class="text-sm text-gray-400">Create and study with flashcards</p>
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600 mt-1">
-                                    Premium Required
-                                </span>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <a href="{{ route('tier.upgrade') }}" class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-500">
-                                Upgrade to Unlock
-                                <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                @endif
+                       <div class="flex items-center">
+                           <div class="flex-shrink-0">
+                               <div class="bg-yellow-100 p-3 rounded-full">
+                                   <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m0 0V1a1 1 0 011-1h2a1 1 0 011 1v18a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1h2a1 1 0 011 1v3"></path>
+                                   </svg>
+                               </div>
+                           </div>
+                           <div class="ml-4">
+                               <h3 class="text-lg font-medium text-gray-900">Flashcards</h3>
+                               <p class="text-sm text-gray-500">Create and study with flashcards</p>
+                               <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
+                                   Premium Only
+                               </span>
+                           </div>
+                       </div>
+                       <div class="mt-4">
+                           <a href="#" class="inline-flex items-center text-sm font-medium text-yellow-600 hover:text-yellow-500">
+                               Create Flashcards
+                               <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                               </svg>
+                           </a>
+                       </div>
+                   </div>
+               </div>
+               @else
+               <!-- Flashcards (Locked for Free users) -->
+               <div class="bg-gray-50 overflow-hidden shadow-sm sm:rounded-lg border-2 border-gray-200 opacity-75">
+                   <div class="p-6">
+                       <div class="flex items-center">
+                           <div class="flex-shrink-0">
+                               <div class="bg-gray-200 p-3 rounded-full">
+                                   <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                   </svg>
+                               </div>
+                           </div>
+                           <div class="ml-4">
+                               <h3 class="text-lg font-medium text-gray-500">Flashcards</h3>
+                               <p class="text-sm text-gray-400">Create and study with flashcards</p>
+                               <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600 mt-1">
+                                   Premium Required
+                               </span>
+                           </div>
+                       </div>
+                       <div class="mt-4">
+                           <a href="{{ route('tier.upgrade') }}" class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-500">
+                               Upgrade to Unlock
+                               <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                               </svg>
+                           </a>
+                       </div>
+                   </div>
+               </div>
+               @endif
 
-                <!-- Analytics -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <div class="bg-indigo-100 p-3 rounded-full">
-                                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-medium text-gray-900">Analytics</h3>
-                                <p class="text-sm text-gray-500">Track your quiz performance</p>
-                                @if($user->isPremium())
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
-                                        Enhanced for Premium
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <a href="#" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                                View Analytics
-                                <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+               <!-- Analytics -->
+               <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                   <div class="p-6">
+                       <div class="flex items-center">
+                           <div class="flex-shrink-0">
+                               <div class="bg-indigo-100 p-3 rounded-full">
+                                   <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                   </svg>
+                               </div>
+                           </div>
+                           <div class="ml-4">
+                               <h3 class="text-lg font-medium text-gray-900">Analytics</h3>
+                               <p class="text-sm text-gray-500">Track your quiz performance</p>
+                               @if($user->isPremium())
+                                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
+                                       Enhanced for Premium
+                                   </span>
+                               @endif
+                           </div>
+                       </div>
+                       <div class="mt-4">
+                           <a href="#" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                               View Analytics
+                               <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                               </svg>
+                           </a>
+                       </div>
+                   </div>
+               </div>
 
-                <!-- Tier Comparison -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <div class="bg-orange-100 p-3 rounded-full">
-                                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="ml-4">
-                                <h3 class="text-lg font-medium text-gray-900">Compare Plans</h3>
-                                <p class="text-sm text-gray-500">See all features and pricing</p>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <a href="{{ route('tier.compare') }}" class="inline-flex items-center text-sm font-medium text-orange-600 hover:text-orange-500">
-                                View Comparison
-                                <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+               <!-- Tier Comparison -->
+               <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                   <div class="p-6">
+                       <div class="flex items-center">
+                           <div class="flex-shrink-0">
+                               <div class="bg-orange-100 p-3 rounded-full">
+                                   <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                   </svg>
+                               </div>
+                           </div>
+                           <div class="ml-4">
+                               <h3 class="text-lg font-medium text-gray-900">Compare Plans</h3>
+                               <p class="text-sm text-gray-500">See all features and pricing</p>
+                           </div>
+                       </div>
+                       <div class="mt-4">
+                           <a href="{{ route('tier.compare') }}" class="inline-flex items-center text-sm font-medium text-orange-600 hover:text-orange-500">
+                               View Comparison
+                               <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                               </svg>
+                           </a>
+                       </div>
+                   </div>
+               </div>
+           </div>
 
-            <!-- Premium Features Showcase for Free Users -->
-            @if($user->isFree())
-            <div class="mt-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-lg shadow-sm">
-                <div class="p-6 text-white">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-xl font-bold">Unlock Premium Features</h3>
-                            <p class="mt-2 text-green-100">
-                                Get unlimited AI generations, flashcards, custom timers, and advanced analytics for just RM5 one-time!
-                            </p>
-                            <ul class="mt-4 space-y-1 text-sm text-green-100">
-                                <li class="flex items-center">
-                                    <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Unlimited AI quiz generations
-                                </li>
-                                <li class="flex items-center">
-                                    <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    AI-powered flashcards
-                                </li>
-                                <li class="flex items-center">
-                                    <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Custom quiz timers
-                                </li>
-                                <li class="flex items-center">
-                                    <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Up to 30 questions per quiz
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="ml-6">
-                            <a href="{{ route('tier.upgrade') }}" class="inline-flex items-center px-6 py-3 bg-white border border-transparent rounded-md font-semibold text-sm text-green-600 uppercase tracking-widest hover:bg-gray-50 focus:bg-gray-50 active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                                </svg>
-                                Upgrade Now
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @endif
-        </div>
-    </div>
+           <!-- Premium Features Showcase for Free Users -->
+           @if($user->isFree())
+           <div class="mt-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-lg shadow-sm">
+               <div class="p-6 text-white">
+                   <div class="flex items-center justify-between">
+                       <div>
+                           <h3 class="text-xl font-bold">Unlock Premium Features</h3>
+                           <p class="mt-2 text-green-100">
+                               Get unlimited AI generations, flashcards, custom timers, and advanced analytics for just RM5 one-time!
+                           </p>
+                           <ul class="mt-4 space-y-1 text-sm text-green-100">
+                               <li class="flex items-center">
+                                   <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                   </svg>
+                                   Unlimited AI quiz generations
+                               </li>
+                               <li class="flex items-center">
+                                   <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                   </svg>
+                                   AI-powered flashcards
+                               </li>
+                               <li class="flex items-center">
+                                   <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                   </svg>
+                                   Custom quiz timers
+                               </li>
+                               <li class="flex items-center">
+                                   <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                   </svg>
+                                   Up to 30 questions per quiz
+                               </li>
+                           </ul>
+                       </div>
+                       <div class="ml-6">
+                           <a href="{{ route('tier.upgrade') }}" class="inline-flex items-center px-6 py-3 bg-white border border-transparent rounded-md font-semibold text-sm text-green-600 uppercase tracking-widest hover:bg-gray-50 focus:bg-gray-50 active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                               </svg>
+                               Upgrade Now
+                           </a>
+                       </div>
+                   </div>
+               </div>
+           </div>
+           @endif
+       </div>
+   </div>
 </x-app-layout>
