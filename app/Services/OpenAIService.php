@@ -21,6 +21,15 @@ class OpenAIService
 
     public function generateQuestions(string $content, int $questionCount = 10): array
     {
+        // Validate content before processing
+        if (empty(trim($content))) {
+            throw new \Exception('No content provided for question generation');
+        }
+
+        if (strlen($content) < 100) {
+            throw new \Exception('Content too short for meaningful question generation');
+        }
+
         $prompt = $this->buildPrompt($content, $questionCount);
 
         try {
@@ -41,7 +50,7 @@ class OpenAIService
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'You are an expert quiz generator. Generate multiple choice questions with exactly 4 options each. Always respond with valid JSON format.'
+                        'content' => 'You are an expert quiz generator. You MUST generate questions ONLY based on the provided content. Do not use external knowledge. Generate multiple choice questions with exactly 4 options each. Always respond with valid JSON format.'
                     ],
                     [
                         'role' => 'user',
@@ -49,7 +58,7 @@ class OpenAIService
                     ]
                 ],
                 'max_tokens' => 3000,
-                'temperature' => 0.7,
+                'temperature' => 0.3, // Lower temperature for more focused responses
             ]);
 
             if ($response->successful()) {
@@ -60,7 +69,18 @@ class OpenAIService
                     throw new \Exception('OpenAI returned empty response');
                 }
                 
-                return $this->parseGeneratedQuestions($generatedText);
+                $questions = $this->parseGeneratedQuestions($generatedText);
+                
+                // Validate that we got meaningful questions
+                if (empty($questions)) {
+                    throw new \Exception('Failed to generate valid questions from the content');
+                }
+
+                if (count($questions) < min(3, $questionCount)) {
+                    throw new \Exception('Generated fewer questions than expected. The content might not be suitable for quiz generation.');
+                }
+                
+                return $questions;
             } else {
                 $errorMessage = $response->json()['error']['message'] ?? 'Unknown OpenAI API error';
                 
@@ -89,35 +109,49 @@ class OpenAIService
 
     private function buildPrompt(string $content, int $questionCount): string
     {
-        return "From the following content, generate exactly {$questionCount} multiple choice questions. 
+        // Truncate content if too long to fit in context window
+        $maxContentLength = 8000; // Leave room for prompt and response
+        if (strlen($content) > $maxContentLength) {
+            $content = substr($content, 0, $maxContentLength) . '...';
+        }
 
-IMPORTANT: Respond ONLY with valid JSON in this exact format:
+        return "Based EXCLUSIVELY on the following content, generate exactly {$questionCount} multiple choice questions. 
+
+CRITICAL INSTRUCTIONS:
+- Use ONLY the information provided in the content below
+- Do NOT use external knowledge or information not present in the content
+- Each question MUST be answerable from the provided content
+- Generate questions that test understanding of the key concepts in the content
+
+CONTENT TO ANALYZE:
+\"{$content}\"
+
+REQUIRED OUTPUT FORMAT - Respond ONLY with valid JSON in this exact format:
 {
   \"questions\": [
     {
-      \"question\": \"Question text here?\",
+      \"question\": \"Question text based on the content?\",
       \"options\": {
-        \"A\": \"First option\",
-        \"B\": \"Second option\",
-        \"C\": \"Third option\",
-        \"D\": \"Fourth option\"
+        \"A\": \"First option from content\",
+        \"B\": \"Second option from content\",
+        \"C\": \"Third option from content\",
+        \"D\": \"Fourth option from content\"
       },
       \"correct_answer\": \"A\",
-      \"explanation\": \"Brief explanation of why this answer is correct\"
+      \"explanation\": \"Brief explanation based on the content provided\"
     }
   ]
 }
 
-Rules:
+REQUIREMENTS:
 - Generate exactly {$questionCount} questions
 - Each question must have exactly 4 options (A, B, C, D)
 - Provide one correct answer (A, B, C, or D)
 - Include a brief explanation for each correct answer
 - Make questions clear and unambiguous
-- Ensure answers are factually correct based on the content
-
-Content to generate questions from:
-{$content}";
+- Ensure all answers are factually correct based ONLY on the provided content
+- Focus on key concepts, definitions, processes, or facts mentioned in the content
+- Avoid questions that require knowledge not present in the content";
     }
 
     private function parseGeneratedQuestions(string $generatedText): array
@@ -134,7 +168,12 @@ Content to generate questions from:
             $decoded = json_decode($jsonText, true);
             
             if (json_last_error() === JSON_ERROR_NONE && isset($decoded['questions'])) {
-                return $this->formatQuestions($decoded['questions']);
+                $formattedQuestions = $this->formatQuestions($decoded['questions']);
+                
+                // Validate that questions are meaningful
+                if (!empty($formattedQuestions)) {
+                    return $formattedQuestions;
+                }
             }
         }
 
@@ -144,8 +183,14 @@ Content to generate questions from:
             'json_error' => json_last_error_msg()
         ]);
 
-        // Fallback: generate default questions
-        return $this->generateFallbackQuestions();
+        // If JSON parsing fails, try to parse the response differently
+        $fallbackQuestions = $this->tryFallbackParsing($generatedText);
+        
+        if (!empty($fallbackQuestions)) {
+            return $fallbackQuestions;
+        }
+
+        throw new \Exception('Failed to parse AI response into valid questions. The content might not be suitable for quiz generation.');
     }
 
     private function formatQuestions(array $questions): array
@@ -154,12 +199,19 @@ Content to generate questions from:
         
         foreach ($questions as $index => $question) {
             if (!isset($question['question'], $question['options'], $question['correct_answer'])) {
+                Log::warning('Skipping malformed question', ['question' => $question]);
                 continue;
             }
 
             $options = $question['options'];
             $correctLetter = strtoupper($question['correct_answer']);
             
+            // Validate that all options exist
+            if (!isset($options['A'], $options['B'], $options['C'], $options['D'])) {
+                Log::warning('Question missing required options', ['question' => $question]);
+                continue;
+            }
+
             // Convert letter to number (A=1, B=2, C=3, D=4)
             $correctNumber = match($correctLetter) {
                 'A' => 1,
@@ -169,14 +221,21 @@ Content to generate questions from:
                 default => 1
             };
 
+            // Validate question quality
+            $questionText = trim($question['question']);
+            if (strlen($questionText) < 10) {
+                Log::warning('Question too short', ['question' => $questionText]);
+                continue;
+            }
+
             $formatted[] = [
-                'question' => $question['question'],
-                'option_1' => $options['A'] ?? $options['a'] ?? 'Option A',
-                'option_2' => $options['B'] ?? $options['b'] ?? 'Option B',
-                'option_3' => $options['C'] ?? $options['c'] ?? 'Option C',
-                'option_4' => $options['D'] ?? $options['d'] ?? 'Option D',
+                'question' => $questionText,
+                'option_1' => trim($options['A']),
+                'option_2' => trim($options['B']),
+                'option_3' => trim($options['C']),
+                'option_4' => trim($options['D']),
                 'correct_answer' => $correctNumber,
-                'explanation' => $question['explanation'] ?? 'This is the correct answer based on the content.',
+                'explanation' => trim($question['explanation'] ?? 'This is the correct answer based on the content.'),
                 'order' => $index + 1,
             ];
         }
@@ -184,20 +243,33 @@ Content to generate questions from:
         return $formatted;
     }
 
-    private function generateFallbackQuestions(): array
+    private function tryFallbackParsing(string $text): array
     {
-        // Fallback questions when API fails
-        return [
-            [
-                'question' => 'Based on the uploaded content, which of the following is a key concept?',
-                'option_1' => 'Concept A from the document',
-                'option_2' => 'Concept B from the document',
-                'option_3' => 'Concept C from the document',
-                'option_4' => 'Concept D from the document',
-                'correct_answer' => 1,
-                'explanation' => 'This is a sample question generated when AI service is unavailable.',
-                'order' => 1,
-            ],
-        ];
+        // Try to extract questions using regex patterns
+        $questions = [];
+        
+        // Pattern to match question blocks
+        if (preg_match_all('/Question:?\s*(.+?)\n.*?A[:\)]?\s*(.+?)\n.*?B[:\)]?\s*(.+?)\n.*?C[:\)]?\s*(.+?)\n.*?D[:\)]?\s*(.+?)\n.*?Answer:?\s*([A-D])/is', $text, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $index => $match) {
+                $questions[] = [
+                    'question' => trim($match[1]),
+                    'option_1' => trim($match[2]),
+                    'option_2' => trim($match[3]),
+                    'option_3' => trim($match[4]),
+                    'option_4' => trim($match[5]),
+                    'correct_answer' => match(strtoupper($match[6])) {
+                        'A' => 1,
+                        'B' => 2,
+                        'C' => 3,
+                        'D' => 4,
+                        default => 1
+                    },
+                    'explanation' => 'This is the correct answer based on the content.',
+                    'order' => $index + 1,
+                ];
+            }
+        }
+
+        return $questions;
     }
 }

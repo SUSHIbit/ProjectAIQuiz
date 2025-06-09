@@ -70,15 +70,50 @@ class QuizController extends Controller
                 ], 400);
             }
 
-            // Extract text from file
+            // Extract text from file with detailed logging
+            \Log::info('Starting text extraction', [
+                'user_id' => $user->id,
+                'file' => $uploadedFile['original_name'],
+                'file_size' => $uploadedFile['size']
+            ]);
+
             $extractedText = $this->fileProcessor->extractTextFromFile($filePath);
             
-            if (empty(trim($extractedText))) {
+            // Validate extracted content
+            $contentValidation = $this->fileProcessor->validateExtractedContent($extractedText);
+            
+            if (!$contentValidation['isValid']) {
+                $errorMessage = 'Unable to extract sufficient content from file: ' . implode(', ', $contentValidation['errors']);
+                
+                // Log detailed extraction info for debugging
+                \Log::warning('Content extraction failed', [
+                    'user_id' => $user->id,
+                    'file' => $uploadedFile['original_name'],
+                    'validation' => $contentValidation,
+                    'extracted_length' => strlen($extractedText),
+                    'content_preview' => substr($extractedText, 0, 500)
+                ]);
+                
                 return response()->json([
                     'success' => false,
-                    'message' => 'Could not extract text from the uploaded file.',
+                    'message' => $errorMessage,
+                    'debug_info' => [
+                        'extracted_chars' => $contentValidation['characterCount'],
+                        'extracted_words' => $contentValidation['wordCount'],
+                        'readable_ratio' => round($contentValidation['readableRatio'] * 100, 1) . '%'
+                    ]
                 ], 400);
             }
+
+            // Log successful content extraction
+            \Log::info('Content extracted successfully', [
+                'user_id' => $user->id,
+                'file' => $uploadedFile['original_name'],
+                'word_count' => $contentValidation['wordCount'],
+                'char_count' => $contentValidation['characterCount'],
+                'readable_ratio' => $contentValidation['readableRatio'],
+                'content_preview' => substr($extractedText, 0, 200) . '...'
+            ]);
 
             // Get question count based on user tier
             $questionCount = $this->getQuestionCountForUser($user, $request->question_count);
@@ -89,7 +124,7 @@ class QuizController extends Controller
             if (empty($generatedQuestions)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to generate questions. Please try again.',
+                    'message' => 'Failed to generate questions from the uploaded content. Please ensure your file contains substantial readable text.',
                 ], 500);
             }
 
@@ -104,21 +139,42 @@ class QuizController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Questions generated successfully!',
+                'message' => 'Questions generated successfully from your uploaded content!',
                 'questions_count' => count($generatedQuestions),
+                'content_info' => [
+                    'word_count' => $contentValidation['wordCount'],
+                    'char_count' => $contentValidation['characterCount'],
+                    'readable_ratio' => round($contentValidation['readableRatio'] * 100, 1) . '%'
+                ],
                 'redirect' => route('quiz.edit'),
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Quiz generation error', [
                 'user_id' => $user->id,
+                'file' => $uploadedFile['original_name'] ?? 'unknown',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
+            $errorMessage = $e->getMessage();
+            
+            // Provide more specific error messages based on the error
+            if (strpos($errorMessage, 'No readable text content found') !== false) {
+                $errorMessage = 'The uploaded PDF does not contain readable text. This could happen if the PDF contains only images, scanned content, or is password-protected. Please try uploading a different PDF with text content.';
+            } elseif (strpos($errorMessage, 'mostly non-readable characters') !== false) {
+                $errorMessage = 'The file appears to contain mostly non-text content. Please ensure your PDF contains actual text (not just images or scanned pages) and try again.';
+            } elseif (strpos($errorMessage, 'Content too short') !== false) {
+                $errorMessage = 'The uploaded file does not contain enough text to generate meaningful questions. Please upload a document with more substantial content (at least a few paragraphs).';
+            } elseif (strpos($errorMessage, 'OpenAI API') !== false) {
+                $errorMessage = 'The AI service is currently unavailable. Please try again in a few moments.';
+            } elseif (strpos($errorMessage, 'Cannot open') !== false) {
+                $errorMessage = 'Unable to open the uploaded file. The file might be corrupted or password-protected. Please try uploading the file again.';
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while generating questions: ' . $e->getMessage(),
+                'message' => $errorMessage,
             ], 500);
         }
     }
@@ -188,8 +244,7 @@ class QuizController extends Controller
             session()->forget(['generated_questions', 'file_info', 'uploaded_file']);
 
             // Clean up uploaded file
-            $uploadedFile = session('uploaded_file');
-            if ($uploadedFile && Storage::exists($uploadedFile['path'])) {
+            if (isset($uploadedFile['path']) && Storage::exists($uploadedFile['path'])) {
                 Storage::delete($uploadedFile['path']);
             }
 
