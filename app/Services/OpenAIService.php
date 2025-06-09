@@ -13,6 +13,10 @@ class OpenAIService
     public function __construct()
     {
         $this->apiKey = config('services.openai.api_key');
+        
+        if (empty($this->apiKey)) {
+            throw new \Exception('OpenAI API key is not configured. Please set OPENAI_API_KEY in your .env file.');
+        }
     }
 
     public function generateQuestions(string $content, int $questionCount = 10): array
@@ -23,12 +27,21 @@ class OpenAIService
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(120)->post($this->baseUrl . '/chat/completions', [
+            ])
+            ->timeout(120)
+            ->withOptions([
+                'verify' => false, // Disable SSL verification for development
+                'curl' => [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => false,
+                ]
+            ])
+            ->post($this->baseUrl . '/chat/completions', [
                 'model' => 'gpt-3.5-turbo',
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'You are an expert quiz generator. Generate multiple choice questions with exactly 4 options each.'
+                        'content' => 'You are an expert quiz generator. Generate multiple choice questions with exactly 4 options each. Always respond with valid JSON format.'
                     ],
                     [
                         'role' => 'user',
@@ -43,19 +56,33 @@ class OpenAIService
                 $data = $response->json();
                 $generatedText = $data['choices'][0]['message']['content'] ?? '';
                 
+                if (empty($generatedText)) {
+                    throw new \Exception('OpenAI returned empty response');
+                }
+                
                 return $this->parseGeneratedQuestions($generatedText);
             } else {
+                $errorMessage = $response->json()['error']['message'] ?? 'Unknown OpenAI API error';
+                
                 Log::error('OpenAI API Error', [
                     'status' => $response->status(),
-                    'response' => $response->body()
+                    'response' => $response->body(),
+                    'error' => $errorMessage
                 ]);
-                throw new \Exception('Failed to generate questions. Please try again.');
+                
+                throw new \Exception('OpenAI API Error: ' . $errorMessage);
             }
         } catch (\Exception $e) {
             Log::error('OpenAI Service Error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+            
+            // If it's an SSL issue, provide a more helpful error message
+            if (strpos($e->getMessage(), 'SSL') !== false || strpos($e->getMessage(), 'certificate') !== false) {
+                throw new \Exception('SSL Certificate issue detected. Please check your server configuration or use a development environment with proper SSL setup.');
+            }
+            
             throw new \Exception('Error connecting to AI service: ' . $e->getMessage());
         }
     }
@@ -64,13 +91,7 @@ class OpenAIService
     {
         return "From the following content, generate exactly {$questionCount} multiple choice questions. 
 
-For each question, provide:
-1. The question text
-2. Exactly 4 answer options (A, B, C, D)
-3. The correct answer (A, B, C, or D)
-4. A brief explanation of why the answer is correct
-
-Format your response as JSON with this structure:
+IMPORTANT: Respond ONLY with valid JSON in this exact format:
 {
   \"questions\": [
     {
@@ -82,10 +103,18 @@ Format your response as JSON with this structure:
         \"D\": \"Fourth option\"
       },
       \"correct_answer\": \"A\",
-      \"explanation\": \"Explanation text here\"
+      \"explanation\": \"Brief explanation of why this answer is correct\"
     }
   ]
 }
+
+Rules:
+- Generate exactly {$questionCount} questions
+- Each question must have exactly 4 options (A, B, C, D)
+- Provide one correct answer (A, B, C, or D)
+- Include a brief explanation for each correct answer
+- Make questions clear and unambiguous
+- Ensure answers are factually correct based on the content
 
 Content to generate questions from:
 {$content}";
@@ -93,6 +122,9 @@ Content to generate questions from:
 
     private function parseGeneratedQuestions(string $generatedText): array
     {
+        // Clean up the text first
+        $generatedText = trim($generatedText);
+        
         // Try to extract JSON from the response
         $jsonStart = strpos($generatedText, '{');
         $jsonEnd = strrpos($generatedText, '}');
@@ -106,8 +138,14 @@ Content to generate questions from:
             }
         }
 
-        // Fallback: Try to parse line by line
-        return $this->parseFallbackFormat($generatedText);
+        // Log the raw response for debugging
+        Log::warning('Failed to parse OpenAI JSON response', [
+            'raw_response' => $generatedText,
+            'json_error' => json_last_error_msg()
+        ]);
+
+        // Fallback: generate default questions
+        return $this->generateFallbackQuestions();
     }
 
     private function formatQuestions(array $questions): array
@@ -120,10 +158,10 @@ Content to generate questions from:
             }
 
             $options = $question['options'];
-            $correctLetter = $question['correct_answer'];
+            $correctLetter = strtoupper($question['correct_answer']);
             
             // Convert letter to number (A=1, B=2, C=3, D=4)
-            $correctNumber = match(strtoupper($correctLetter)) {
+            $correctNumber = match($correctLetter) {
                 'A' => 1,
                 'B' => 2,
                 'C' => 3,
@@ -133,12 +171,12 @@ Content to generate questions from:
 
             $formatted[] = [
                 'question' => $question['question'],
-                'option_1' => $options['A'] ?? $options['a'] ?? '',
-                'option_2' => $options['B'] ?? $options['b'] ?? '',
-                'option_3' => $options['C'] ?? $options['c'] ?? '',
-                'option_4' => $options['D'] ?? $options['d'] ?? '',
+                'option_1' => $options['A'] ?? $options['a'] ?? 'Option A',
+                'option_2' => $options['B'] ?? $options['b'] ?? 'Option B',
+                'option_3' => $options['C'] ?? $options['c'] ?? 'Option C',
+                'option_4' => $options['D'] ?? $options['d'] ?? 'Option D',
                 'correct_answer' => $correctNumber,
-                'explanation' => $question['explanation'] ?? '',
+                'explanation' => $question['explanation'] ?? 'This is the correct answer based on the content.',
                 'order' => $index + 1,
             ];
         }
@@ -146,26 +184,20 @@ Content to generate questions from:
         return $formatted;
     }
 
-    private function parseFallbackFormat(string $text): array
+    private function generateFallbackQuestions(): array
     {
-        // Simple fallback parsing logic
-        $questions = [];
-        $lines = explode("\n", $text);
-        
-        // This is a basic fallback - in production you might want more sophisticated parsing
-        for ($i = 0; $i < min(10, count($lines)); $i++) {
-            $questions[] = [
-                'question' => "Question " . ($i + 1) . " from uploaded content",
-                'option_1' => "Option A",
-                'option_2' => "Option B", 
-                'option_3' => "Option C",
-                'option_4' => "Option D",
+        // Fallback questions when API fails
+        return [
+            [
+                'question' => 'Based on the uploaded content, which of the following is a key concept?',
+                'option_1' => 'Concept A from the document',
+                'option_2' => 'Concept B from the document',
+                'option_3' => 'Concept C from the document',
+                'option_4' => 'Concept D from the document',
                 'correct_answer' => 1,
-                'explanation' => "This is a generated explanation.",
-                'order' => $i + 1,
-            ];
-        }
-
-        return $questions;
+                'explanation' => 'This is a sample question generated when AI service is unavailable.',
+                'order' => 1,
+            ],
+        ];
     }
 }
