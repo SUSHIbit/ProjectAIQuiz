@@ -29,6 +29,9 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => 'user',
+            'tier' => 'free',
+            'question_attempts' => 3,
         ];
     }
 
@@ -39,6 +42,40 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Create a premium user.
+     */
+    public function premium(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'tier' => 'premium',
+            'question_attempts' => 999,
+        ]);
+    }
+
+    /**
+     * Create an admin user.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+            'tier' => 'premium',
+            'question_attempts' => 999,
+        ]);
+    }
+
+    /**
+     * Create a user with no attempts remaining.
+     */
+    public function noAttempts(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'tier' => 'free',
+            'question_attempts' => 0,
         ]);
     }
 }

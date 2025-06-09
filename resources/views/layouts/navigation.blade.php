@@ -38,6 +38,9 @@
                                     {{ __('Flashcards') }}
                                 </x-nav-link>
                             @endif
+                            <x-nav-link :href="route('tier.compare')" :active="request()->routeIs('tier.*')">
+                                {{ __('Plans') }}
+                            </x-nav-link>
                         @endif
                     @endauth
                 </div>
@@ -48,11 +51,15 @@
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <!-- Tier Badge -->
                 @if(auth()->user()->isUser())
-                <div class="mr-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        {{ auth()->user()->isPremium() ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                <div class="mr-4 flex items-center space-x-2">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ auth()->user()->tier_badge_color }}">
                         {{ ucfirst(auth()->user()->tier) }}
                     </span>
+                    @if(auth()->user()->isFree())
+                        <span class="text-xs text-gray-500">
+                            {{ auth()->user()->question_attempts }} left
+                        </span>
+                    @endif
                 </div>
                 @endif
 
@@ -73,6 +80,17 @@
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
                         </x-dropdown-link>
+
+                        @if(auth()->user()->isFree())
+                            <x-dropdown-link :href="route('tier.upgrade')">
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                    </svg>
+                                    <span class="text-green-600 font-medium">{{ __('Upgrade to Premium') }}</span>
+                                </div>
+                            </x-dropdown-link>
+                        @endif
 
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
@@ -138,6 +156,9 @@
                             {{ __('Flashcards') }}
                         </x-responsive-nav-link>
                     @endif
+                    <x-responsive-nav-link :href="route('tier.compare')" :active="request()->routeIs('tier.*')">
+                        {{ __('Plans') }}
+                    </x-responsive-nav-link>
                 @endif
             @endauth
         </div>
@@ -148,12 +169,33 @@
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
                 <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+                <div class="mt-1">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ Auth::user()->tier_badge_color }}">
+                        {{ ucfirst(Auth::user()->tier) }}
+                    </span>
+                    @if(Auth::user()->isFree())
+                        <span class="text-xs text-gray-500 ml-2">
+                            {{ Auth::user()->question_attempts }} attempts left
+                        </span>
+                    @endif
+                </div>
             </div>
 
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
+
+                @if(auth()->user()->isFree())
+                    <x-responsive-nav-link :href="route('tier.upgrade')">
+                        <div class="flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                            </svg>
+                            <span class="text-green-600 font-medium">{{ __('Upgrade to Premium') }}</span>
+                        </div>
+                    </x-responsive-nav-link>
+                @endif
 
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">

@@ -44,6 +44,7 @@ class User extends Authenticatable
         return $this->role === 'user';
     }
 
+    // Tier checking methods
     public function isPremium(): bool
     {
         return $this->tier === 'premium';
@@ -54,6 +55,7 @@ class User extends Authenticatable
         return $this->tier === 'free';
     }
 
+    // Attempt management methods
     public function canGenerateQuestions(): bool
     {
         return $this->isPremium() || $this->question_attempts > 0;
@@ -64,6 +66,27 @@ class User extends Authenticatable
         if ($this->isFree() && $this->question_attempts > 0) {
             $this->decrement('question_attempts');
         }
+    }
+
+    public function hasUnlimitedAccess(): bool
+    {
+        return $this->isPremium();
+    }
+
+    public function getRemainingAttemptsAttribute(): int
+    {
+        return $this->isPremium() ? 999 : $this->question_attempts;
+    }
+
+    public function getAttemptsDisplayAttribute(): string
+    {
+        return $this->isPremium() ? 'Unlimited' : (string) $this->question_attempts;
+    }
+
+    // Tier badge color for UI
+    public function getTierBadgeColorAttribute(): string
+    {
+        return $this->isPremium() ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
     }
 
     // Relationships
