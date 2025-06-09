@@ -175,4 +175,21 @@ class User extends Authenticatable
         
         return round($secondAvg - $firstAvg, 1);
     }
+
+    public function flashcards()
+    {
+        return $this->hasMany(Flashcard::class);
+    }
+
+    public function getFlashcardStats()
+    {
+        return [
+            'total_flashcards' => $this->flashcards()->count(),
+            'ai_generated' => $this->flashcards()->where('source_type', 'ai')->count(),
+            'manual_created' => $this->flashcards()->where('source_type', 'manual')->count(),
+            'categories' => $this->flashcards()->whereNotNull('category')->distinct('category')->count(),
+            'total_studies' => $this->flashcards()->sum('study_count'),
+            'last_activity' => $this->flashcards()->max('last_studied_at'),
+        ];
+    }
 }

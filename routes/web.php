@@ -8,6 +8,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FlashcardController;
 use App\Http\Controllers\ManualQuizController;
 use App\Http\Controllers\QuizAttemptController;
 
@@ -91,6 +92,27 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['admin'])->group(function () {
         Route::get('/admin/analytics', [AnalyticsController::class, 'adminAnalytics'])->name('admin.analytics');
     });
+});
+
+Route::middleware(['auth', 'premium'])->prefix('flashcards')->name('flashcards.')->group(function () {
+    Route::get('/', [FlashcardController::class, 'index'])->name('index');
+    Route::get('/create', [FlashcardController::class, 'create'])->name('create');
+    Route::post('/store', [FlashcardController::class, 'store'])->name('store');
+    Route::get('/{flashcard}', [FlashcardController::class, 'show'])->name('show');
+    Route::get('/{flashcard}/edit', [FlashcardController::class, 'edit'])->name('edit');
+    Route::put('/{flashcard}', [FlashcardController::class, 'update'])->name('update');
+    Route::delete('/{flashcard}', [FlashcardController::class, 'destroy'])->name('destroy');
+    
+    // Study routes
+    Route::get('/study/session', [FlashcardController::class, 'study'])->name('study');
+    Route::post('/{flashcard}/mark-studied', [FlashcardController::class, 'markStudied'])->name('mark-studied');
+    
+    // AI Generation routes
+    Route::get('/ai/generator', [FlashcardController::class, 'aiGenerator'])->name('ai.generator');
+    Route::post('/ai/generate', [FlashcardController::class, 'generateAI'])->name('ai.generate');
+    
+    // Bulk operations
+    Route::delete('/bulk/delete', [FlashcardController::class, 'bulkDelete'])->name('bulk.delete');
 });
 
 require __DIR__.'/auth.php';

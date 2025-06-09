@@ -272,4 +272,190 @@ REQUIREMENTS:
 
         return $questions;
     }
+
+    
+
+    public function generateFlashcards(string $content, int $flashcardCount = 10): array
+    {
+        // Validate content before processing
+        if (empty(trim($content))) {
+            throw new \Exception('No content provided for flashcard generation');
+        }
+
+        if (strlen($content) < 100) {
+            throw new \Exception('Content too short for meaningful flashcard generation');
+        }
+
+        $prompt = $this->buildFlashcardPrompt($content, $flashcardCount);
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])
+            ->timeout(120)
+            ->withOptions([
+                'verify' => false,
+                'curl' => [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => false,
+                ]
+            ])
+            ->post($this->baseUrl . '/chat/completions', [
+                'model' => 'gpt-3.5-turbo',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are an expert flashcard creator. Create educational flashcards ONLY based on the provided content. Always respond with valid JSON format.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt
+                    ]
+                ],
+                'max_tokens' => 3000,
+                'temperature' => 0.3,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $generatedText = $data['choices'][0]['message']['content'] ?? '';
+                
+                if (empty($generatedText)) {
+                    throw new \Exception('OpenAI returned empty response');
+                }
+                
+                $flashcards = $this->parseGeneratedFlashcards($generatedText);
+                
+                if (empty($flashcards)) {
+                    throw new \Exception('Failed to generate valid flashcards from the content');
+                }
+
+                if (count($flashcards) < min(3, $flashcardCount)) {
+                    throw new \Exception('Generated fewer flashcards than expected');
+                }
+                
+                return $flashcards;
+            } else {
+                $errorMessage = $response->json()['error']['message'] ?? 'Unknown OpenAI API error';
+                
+                Log::error('OpenAI API Error', [
+                    'status' => $response->status(),
+                    'response' => $response->body(),
+                    'error' => $errorMessage
+                ]);
+                
+                throw new \Exception('OpenAI API Error: ' . $errorMessage);
+            }
+        } catch (\Exception $e) {
+            Log::error('OpenAI Flashcard Service Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            throw new \Exception('Error connecting to AI service: ' . $e->getMessage());
+        }
+    }
+
+    private function buildFlashcardPrompt(string $content, int $flashcardCount): string
+    {
+        // Truncate content if too long
+        $maxContentLength = 8000;
+        if (strlen($content) > $maxContentLength) {
+            $content = substr($content, 0, $maxContentLength) . '...';
+        }
+
+        return "Based EXCLUSIVELY on the following content, generate exactly {$flashcardCount} educational flashcards.
+
+    CRITICAL INSTRUCTIONS:
+    - Use ONLY the information provided in the content below
+    - Do NOT use external knowledge or information not present in the content
+    - Each flashcard must be answerable from the provided content
+    - Focus on key concepts, definitions, processes, or important facts
+
+    CONTENT TO ANALYZE:
+    \"{$content}\"
+
+    REQUIRED OUTPUT FORMAT - Respond ONLY with valid JSON in this exact format:
+    {
+    \"flashcards\": [
+        {
+        \"title\": \"Brief title for the flashcard\",
+        \"front_text\": \"Question or concept to learn (from content)\",
+        \"back_text\": \"Answer or explanation (from content)\"
+        }
+    ]
+    }
+
+    REQUIREMENTS:
+    - Generate exactly {$flashcardCount} flashcards
+    - Each flashcard must have title, front_text, and back_text
+    - Front text should be a question, term, or concept
+    - Back text should be the answer, definition, or explanation
+    - Keep front text concise (under 100 characters when possible)
+    - Keep back text informative but not too long (under 300 characters)
+    - Base all content strictly on the provided material
+    - Make flashcards suitable for studying and memorization";
+    }
+
+    private function parseGeneratedFlashcards(string $generatedText): array
+    {
+        // Clean up the text first
+        $generatedText = trim($generatedText);
+        
+        // Try to extract JSON from the response
+        $jsonStart = strpos($generatedText, '{');
+        $jsonEnd = strrpos($generatedText, '}');
+        
+        if ($jsonStart !== false && $jsonEnd !== false) {
+            $jsonText = substr($generatedText, $jsonStart, $jsonEnd - $jsonStart + 1);
+            $decoded = json_decode($jsonText, true);
+            
+            if (json_last_error() === JSON_ERROR_NONE && isset($decoded['flashcards'])) {
+                $formattedFlashcards = $this->formatFlashcards($decoded['flashcards']);
+                
+                if (!empty($formattedFlashcards)) {
+                    return $formattedFlashcards;
+                }
+            }
+        }
+
+        // Log the raw response for debugging
+        Log::warning('Failed to parse OpenAI flashcard JSON response', [
+            'raw_response' => $generatedText,
+            'json_error' => json_last_error_msg()
+        ]);
+
+        throw new \Exception('Failed to parse AI response into valid flashcards');
+    }
+
+    private function formatFlashcards(array $flashcards): array
+    {
+        $formatted = [];
+        
+        foreach ($flashcards as $index => $flashcard) {
+            if (!isset($flashcard['title'], $flashcard['front_text'], $flashcard['back_text'])) {
+                Log::warning('Skipping malformed flashcard', ['flashcard' => $flashcard]);
+                continue;
+            }
+
+            // Validate flashcard quality
+            $title = trim($flashcard['title']);
+            $frontText = trim($flashcard['front_text']);
+            $backText = trim($flashcard['back_text']);
+            
+            if (strlen($title) < 3 || strlen($frontText) < 5 || strlen($backText) < 5) {
+                Log::warning('Flashcard too short', ['flashcard' => $flashcard]);
+                continue;
+            }
+
+            $formatted[] = [
+                'title' => $title,
+                'front_text' => $frontText,
+                'back_text' => $backText,
+            ];
+        }
+
+        return $formatted;
+    }
 }

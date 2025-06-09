@@ -41,14 +41,22 @@
                             <x-nav-link :href="route('welcome')" :active="request()->routeIs('welcome')">
                                 {{ __('AI Generator') }}
                             </x-nav-link>
+                            @if(auth()->user()->isPremium())
+                                <x-nav-link :href="route('flashcards.index')" :active="request()->routeIs('flashcards.*')">
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                        </svg>
+                                        {{ __('Flashcards') }}
+                                        <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            Premium
+                                        </span>
+                                    </div>
+                                </x-nav-link>
+                            @endif
                             <x-nav-link :href="route('analytics.dashboard')" :active="request()->routeIs('analytics.*')">
                                 {{ __('Analytics') }}
                             </x-nav-link>
-                            @if(auth()->user()->isPremium())
-                                <x-nav-link href="#" :active="false">
-                                    {{ __('Flashcards') }}
-                                </x-nav-link>
-                            @endif
                             <x-nav-link :href="route('tier.compare')" :active="request()->routeIs('tier.*')">
                                 {{ __('Plans') }}
                             </x-nav-link>
@@ -65,6 +73,11 @@
                 <div class="mr-4 flex items-center space-x-2">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ auth()->user()->tier_badge_color }}">
                         {{ ucfirst(auth()->user()->tier) }}
+                        @if(auth()->user()->isPremium())
+                            <svg class="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                        @endif
                     </span>
                     @if(auth()->user()->isFree())
                     <span class="text-xs text-gray-500">
@@ -103,23 +116,33 @@
                                 </div>
                             </x-dropdown-link>
 
-                            @if(auth()->user()->isFree())
+                            @if(auth()->user()->isPremium())
+                                <!-- Premium Features -->
+                                <x-dropdown-link :href="route('flashcards.index')">
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                        </svg>
+                                        <span class="text-yellow-600 font-medium">{{ __('My Flashcards') }}</span>
+                                    </div>
+                                </x-dropdown-link>
+                                
+                                <!-- Premium Badge -->
+                                <x-dropdown-link href="#" class="cursor-default">
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                        </svg>
+                                        <span class="text-yellow-600 font-medium">{{ __('Premium Member') }}</span>
+                                    </div>
+                                </x-dropdown-link>
+                            @else
                                 <x-dropdown-link :href="route('tier.upgrade')">
                                     <div class="flex items-center">
                                         <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
                                         </svg>
                                         <span class="text-green-600 font-medium">{{ __('Upgrade to Premium') }}</span>
-                                    </div>
-                                </x-dropdown-link>
-                            @else
-                                <!-- Premium Badge -->
-                                <x-dropdown-link href="#" class="cursor-default">
-                                    <div class="flex items-center">
-                                        <svg class="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                                        </svg>
-                                        <span class="text-yellow-600 font-medium">{{ __('Premium Member') }}</span>
                                     </div>
                                 </x-dropdown-link>
                             @endif
@@ -204,14 +227,22 @@
                     <x-responsive-nav-link :href="route('welcome')" :active="request()->routeIs('welcome')">
                         {{ __('AI Generator') }}
                     </x-responsive-nav-link>
+                    @if(auth()->user()->isPremium())
+                        <x-responsive-nav-link :href="route('flashcards.index')" :active="request()->routeIs('flashcards.*')">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                                {{ __('Flashcards') }}
+                                <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Premium
+                                </span>
+                            </div>
+                        </x-responsive-nav-link>
+                    @endif
                     <x-responsive-nav-link :href="route('analytics.dashboard')" :active="request()->routeIs('analytics.*')">
                         {{ __('Analytics') }}
                     </x-responsive-nav-link>
-                    @if(auth()->user()->isPremium())
-                        <x-responsive-nav-link href="#" :active="false">
-                            {{ __('Flashcards') }}
-                        </x-responsive-nav-link>
-                    @endif
                     <x-responsive-nav-link :href="route('tier.compare')" :active="request()->routeIs('tier.*')">
                         {{ __('Plans') }}
                     </x-responsive-nav-link>
@@ -228,6 +259,11 @@
                 <div class="mt-1">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ Auth::user()->tier_badge_color }}">
                         {{ ucfirst(Auth::user()->tier) }}
+                        @if(Auth::user()->isPremium())
+                            <svg class="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                        @endif
                     </span>
                     @if(Auth::user()->isFree())
                         <span class="text-xs text-gray-500 ml-2">
@@ -253,7 +289,27 @@
                         </div>
                     </x-responsive-nav-link>
 
-                    @if(auth()->user()->isFree())
+                    @if(auth()->user()->isPremium())
+                        <!-- Premium Flashcards Link -->
+                        <x-responsive-nav-link :href="route('flashcards.index')">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                                <span class="text-yellow-600 font-medium">{{ __('My Flashcards') }}</span>
+                            </div>
+                        </x-responsive-nav-link>
+                        
+                        <!-- Premium Member Badge -->
+                        <div class="px-4 py-2">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                </svg>
+                                <span class="text-yellow-600 font-medium text-sm">{{ __('Premium Member') }}</span>
+                            </div>
+                        </div>
+                    @else
                         <x-responsive-nav-link :href="route('tier.upgrade')">
                             <div class="flex items-center">
                                 <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,16 +318,6 @@
                                 <span class="text-green-600 font-medium">{{ __('Upgrade to Premium') }}</span>
                             </div>
                         </x-responsive-nav-link>
-                    @else
-                        <!-- Premium Member Badge -->
-                        <div class="px-4 py-2">
-                            <div class="flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                                </svg>
-                                <span class="text-yellow-600 font-medium text-sm">{{ __('Premium Member') }}</span>
-                            </div>
-                        </div>
                     @endif
                 @endif
 
