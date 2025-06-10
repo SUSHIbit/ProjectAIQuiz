@@ -1,5 +1,4 @@
 <?php
-// routes/web.php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuizController;
@@ -153,5 +152,23 @@ Route::middleware('auth')->prefix('test')->name('test.')->group(function () {
         ]);
     })->name('payment.config');
 });
+
+// Debug route (temporary - remove in production)
+Route::middleware('auth')->get('/debug/toyyibpay', function() {
+    try {
+        $config = [
+            'api_key' => config('services.toyyibpay.api_key') ? 'SET (length: ' . strlen(config('services.toyyibpay.api_key')) . ')' : 'NOT SET',
+            'category_code' => config('services.toyyibpay.category_code') ?: 'NOT SET',
+            'base_url' => config('services.toyyibpay.base_url'),
+            'sandbox' => config('services.toyyibpay.sandbox') ? 'true' : 'false',
+            'callback_url' => route('payment.callback'),
+            'return_url' => route('payment.return'),
+        ];
+        
+        return response()->json($config);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()]);
+    }
+})->name('debug.toyyibpay');
 
 require __DIR__.'/auth.php';

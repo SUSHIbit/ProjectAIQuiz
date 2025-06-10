@@ -35,7 +35,7 @@ class PaymentController extends Controller
             ->first();
 
         if ($existingPayment && $existingPayment->payment_url) {
-            return redirect()->route('payment.show', $existingPayment->id);
+            return redirect()->away($existingPayment->payment_url);
         }
 
         try {
@@ -55,13 +55,25 @@ class PaymentController extends Controller
             if ($billResult['success']) {
                 DB::commit();
                 
-                return redirect()->route('payment.show', $payment->id)
-                    ->with('success', 'Payment initiated successfully. Please complete your payment.');
+                // Log successful bill creation
+                Log::info('Payment bill created successfully', [
+                    'payment_id' => $payment->id,
+                    'bill_code' => $billResult['bill_code'],
+                    'payment_url' => $billResult['payment_url']
+                ]);
+                
+                // Redirect directly to ToyyibPay
+                return redirect()->away($billResult['payment_url']);
             } else {
                 DB::rollBack();
                 
+                Log::error('Payment bill creation failed', [
+                    'payment_id' => $payment->id,
+                    'error' => $billResult['message']
+                ]);
+                
                 return redirect()->route('tier.upgrade')
-                    ->with('error', $billResult['message']);
+                    ->with('error', 'Unable to create payment: ' . $billResult['message']);
             }
         } catch (\Exception $e) {
             DB::rollBack();
@@ -69,10 +81,11 @@ class PaymentController extends Controller
             Log::error('Payment initiation error', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return redirect()->route('tier.upgrade')
-                ->with('error', 'Unable to initiate payment. Please try again.');
+                ->with('error', 'Unable to initiate payment. Please try again. Error: ' . $e->getMessage());
         }
     }
 
@@ -96,6 +109,7 @@ class PaymentController extends Controller
             Log::info('Payment callback received', [
                 'callback_data' => $callbackData,
                 'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
             ]);
 
             $result = $this->toyyibpayService->processCallback($callbackData);
@@ -103,12 +117,17 @@ class PaymentController extends Controller
             if ($result['success']) {
                 return response('OK', 200);
             } else {
+                Log::error('Callback processing failed', [
+                    'result' => $result,
+                    'callback_data' => $callbackData
+                ]);
                 return response('FAILED', 400);
             }
         } catch (\Exception $e) {
             Log::error('Payment callback error', [
                 'error' => $e->getMessage(),
                 'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             return response('ERROR', 500);
@@ -122,6 +141,14 @@ class PaymentController extends Controller
         $billCode = $request->get('billcode');
         $orderRef = $request->get('order_id');
 
+        Log::info('Payment return received', [
+            'user_id' => $user->id,
+            'status' => $status,
+            'bill_code' => $billCode,
+            'order_ref' => $orderRef,
+            'all_params' => $request->all()
+        ]);
+
         // Find payment
         $payment = null;
         if ($billCode) {
@@ -131,6 +158,11 @@ class PaymentController extends Controller
         }
 
         if (!$payment) {
+            Log::warning('Payment not found for return', [
+                'bill_code' => $billCode,
+                'user_id' => $user->id
+            ]);
+            
             return redirect()->route('tier.upgrade')
                 ->with('error', 'Payment session not found.');
         }
@@ -224,6 +256,12 @@ class PaymentController extends Controller
 
         try {
             $transactions = $this->toyyibpayService->getBillTransactions($payment->toyyibpay_bill_code);
+            
+            Log::info('Retrieved bill transactions', [
+                'payment_id' => $payment->id,
+                'bill_code' => $payment->toyyibpay_bill_code,
+                'transactions' => $transactions
+            ]);
             
             if (!empty($transactions)) {
                 $latestTransaction = end($transactions);

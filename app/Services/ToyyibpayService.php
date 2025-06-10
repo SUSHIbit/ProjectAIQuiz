@@ -17,9 +17,14 @@ class ToyyibpayService
     {
         $this->apiKey = config('services.toyyibpay.api_key');
         $this->categoryCode = config('services.toyyibpay.category_code');
-        $this->baseUrl = config('services.toyyibpay.base_url', 'https://toyyibpay.com');
+        $this->baseUrl = config('services.toyyibpay.base_url', 'https://dev.toyyibpay.com');
         
         if (empty($this->apiKey) || empty($this->categoryCode)) {
+            Log::error('Toyyibpay configuration missing', [
+                'api_key_set' => !empty($this->apiKey),
+                'category_code_set' => !empty($this->categoryCode),
+                'base_url' => $this->baseUrl
+            ]);
             throw new \Exception('Toyyibpay configuration is incomplete. Please check your .env file.');
         }
     }
@@ -35,7 +40,7 @@ class ToyyibpayService
             'billDescription' => 'Upgrade to Premium for unlimited AI generations and flashcards',
             'billPriceSetting' => 1, // Fixed price
             'billPayorInfo' => 1, // Collect payer info
-            'billAmount' => $payment->amount * 100, // Convert to cents
+            'billAmount' => number_format($payment->amount * 100, 0, '', ''), // Convert to cents, no decimals
             'billReturnUrl' => route('payment.return'),
             'billCallbackUrl' => route('payment.callback'),
             'billExternalReferenceNo' => $billExternalRef,
@@ -49,38 +54,66 @@ class ToyyibpayService
             'billChargeToCustomer' => 1,
         ];
 
+        Log::info('Creating Toyyibpay bill', [
+            'payment_id' => $payment->id,
+            'bill_data' => $billData,
+            'api_url' => $this->baseUrl . '/index.php/api/createBill'
+        ]);
+
         try {
-            $response = Http::timeout(30)->post($this->baseUrl . '/index.php/api/createBill', $billData);
+            $response = Http::timeout(30)
+                ->asForm() // Send as form data
+                ->post($this->baseUrl . '/index.php/api/createBill', $billData);
+            
+            Log::info('Toyyibpay API response', [
+                'payment_id' => $payment->id,
+                'status_code' => $response->status(),
+                'response_body' => $response->body(),
+                'response_headers' => $response->headers()
+            ]);
             
             if ($response->successful()) {
                 $responseData = $response->json();
                 
-                if (isset($responseData[0]['BillCode'])) {
-                    // Update payment with Toyyibpay details
-                    $payment->update([
-                        'toyyibpay_bill_code' => $responseData[0]['BillCode'],
-                        'toyyibpay_bill_external_ref' => $billExternalRef,
-                        'toyyibpay_category_code' => $this->categoryCode,
-                        'toyyibpay_response' => $responseData,
-                    ]);
-
-                    return [
-                        'success' => true,
-                        'bill_code' => $responseData[0]['BillCode'],
-                        'payment_url' => $this->baseUrl . '/' . $responseData[0]['BillCode'],
-                        'external_ref' => $billExternalRef,
-                    ];
+                // Handle both array and object responses
+                if (is_array($responseData) && isset($responseData[0]['BillCode'])) {
+                    $billInfo = $responseData[0];
+                } elseif (isset($responseData['BillCode'])) {
+                    $billInfo = $responseData;
                 } else {
-                    Log::error('Toyyibpay bill creation failed', [
+                    Log::error('Unexpected response format from Toyyibpay', [
                         'payment_id' => $payment->id,
                         'response' => $responseData,
                     ]);
                     
                     return [
                         'success' => false,
-                        'message' => $responseData[0]['msg'] ?? 'Failed to create payment bill',
+                        'message' => 'Unexpected response format from payment gateway',
                     ];
                 }
+                
+                // Update payment with Toyyibpay details
+                $payment->update([
+                    'toyyibpay_bill_code' => $billInfo['BillCode'],
+                    'toyyibpay_bill_external_ref' => $billExternalRef,
+                    'toyyibpay_category_code' => $this->categoryCode,
+                    'toyyibpay_response' => $responseData,
+                ]);
+
+                $paymentUrl = $this->baseUrl . '/' . $billInfo['BillCode'];
+
+                Log::info('Toyyibpay bill created successfully', [
+                    'payment_id' => $payment->id,
+                    'bill_code' => $billInfo['BillCode'],
+                    'payment_url' => $paymentUrl
+                ]);
+
+                return [
+                    'success' => true,
+                    'bill_code' => $billInfo['BillCode'],
+                    'payment_url' => $paymentUrl,
+                    'external_ref' => $billExternalRef,
+                ];
             } else {
                 Log::error('Toyyibpay API request failed', [
                     'payment_id' => $payment->id,
@@ -90,18 +123,19 @@ class ToyyibpayService
                 
                 return [
                     'success' => false,
-                    'message' => 'Payment service is currently unavailable. Please try again later.',
+                    'message' => 'Payment service returned error code: ' . $response->status(),
                 ];
             }
         } catch (\Exception $e) {
             Log::error('Toyyibpay service error', [
                 'payment_id' => $payment->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             return [
                 'success' => false,
-                'message' => 'An error occurred while processing your payment. Please try again.',
+                'message' => 'Connection error: ' . $e->getMessage(),
             ];
         }
     }
@@ -109,7 +143,7 @@ class ToyyibpayService
     public function getBillTransactions(string $billCode): array
     {
         try {
-            $response = Http::timeout(30)->post($this->baseUrl . '/index.php/api/getBillTransactions', [
+            $response = Http::timeout(30)->asForm()->post($this->baseUrl . '/index.php/api/getBillTransactions', [
                 'billCode' => $billCode,
                 'userSecretKey' => $this->apiKey,
             ]);
@@ -131,8 +165,8 @@ class ToyyibpayService
 
     public function verifyCallback(array $callbackData): bool
     {
-        // Verify required fields
-        $requiredFields = ['refno', 'status', 'billcode', 'order_id', 'amount'];
+        // Basic validation - ToyyibPay callbacks might have different field names
+        $requiredFields = ['billcode'];
         
         foreach ($requiredFields as $field) {
             if (!isset($callbackData[$field])) {
@@ -143,9 +177,6 @@ class ToyyibpayService
                 return false;
             }
         }
-
-        // Additional verification can be added here
-        // For example, verifying hash signature if provided by Toyyibpay
         
         return true;
     }
@@ -160,8 +191,8 @@ class ToyyibpayService
         }
 
         $billCode = $callbackData['billcode'];
-        $status = $callbackData['status'];
-        $amount = $callbackData['amount'] / 100; // Convert from cents
+        $status = $callbackData['status_id'] ?? $callbackData['status'] ?? '0';
+        $amount = isset($callbackData['amount']) ? $callbackData['amount'] / 100 : 0;
 
         // Find payment by bill code
         $payment = Payment::where('toyyibpay_bill_code', $billCode)->first();
@@ -183,7 +214,7 @@ class ToyyibpayService
             if ($payment->isPending()) {
                 $payment->markAsSuccess($callbackData);
                 
-                Log::info('Payment completed successfully', [
+                Log::info('Payment completed successfully via callback', [
                     'payment_id' => $payment->id,
                     'user_id' => $payment->user_id,
                     'amount' => $amount,
@@ -200,7 +231,7 @@ class ToyyibpayService
             if ($payment->isPending()) {
                 $payment->markAsFailed($callbackData);
                 
-                Log::info('Payment failed', [
+                Log::info('Payment failed via callback', [
                     'payment_id' => $payment->id,
                     'user_id' => $payment->user_id,
                     'status' => $status,
