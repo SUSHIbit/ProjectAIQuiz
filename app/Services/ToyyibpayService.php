@@ -29,43 +29,56 @@ class ToyyibpayService
         }
     }
 
+    private function getHttpClient()
+    {
+        return Http::withOptions([
+            'verify' => false,
+            'curl' => [
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+            ]
+        ]);
+    }
+
     public function createBill(Payment $payment): array
     {
         $billExternalRef = 'QUIZ_' . $payment->id . '_' . time();
         
+        // Make sure all required fields are properly set
         $billData = [
             'userSecretKey' => $this->apiKey,
             'categoryCode' => $this->categoryCode,
-            'billName' => 'AI Quiz Generator - Premium Upgrade',
-            'billDescription' => 'Upgrade to Premium for unlimited AI generations and flashcards',
-            'billPriceSetting' => 1, // Fixed price
-            'billPayorInfo' => 1, // Collect payer info
-            'billAmount' => number_format($payment->amount * 100, 0, '', ''), // Convert to cents, no decimals
+            'billName' => 'Quiz Premium',  // Even shorter to be safe
+            'billDescription' => 'Premium upgrade for unlimited features',
+            'billPriceSetting' => 1,
+            'billPayorInfo' => 1,
+            'billAmount' => number_format($payment->amount * 100, 0, '', ''),
             'billReturnUrl' => route('payment.return'),
             'billCallbackUrl' => route('payment.callback'),
             'billExternalReferenceNo' => $billExternalRef,
             'billTo' => $payment->user->name,
             'billEmail' => $payment->user->email,
-            'billPhone' => '', // Optional
+            'billPhone' => '+601234567890',  // Malaysian format with country code
             'billSplitPayment' => 0,
             'billSplitPaymentArgs' => '',
-            'billPaymentChannel' => '0', // All channels
-            'billContentEmail' => 'Thank you for upgrading to Premium!',
+            'billPaymentChannel' => '0',
+            'billContentEmail' => 'Thank you for upgrading!',
             'billChargeToCustomer' => 1,
         ];
 
         Log::info('Creating Toyyibpay bill', [
             'payment_id' => $payment->id,
-            'bill_data' => array_merge($billData, ['userSecretKey' => '[HIDDEN]']), // Hide API key in logs
+            'bill_data' => array_merge($billData, ['userSecretKey' => '[HIDDEN]']),
             'api_url' => $this->baseUrl . '/index.php/api/createBill'
         ]);
 
         try {
-            $response = Http::timeout(30)
+            $response = $this->getHttpClient()
+                ->timeout(30)
                 ->withHeaders([
                     'Content-Type' => 'application/x-www-form-urlencoded',
                 ])
-                ->asForm() // Send as form data
+                ->asForm()
                 ->post($this->baseUrl . '/index.php/api/createBill', $billData);
             
             Log::info('Toyyibpay API response', [
@@ -78,7 +91,6 @@ class ToyyibpayService
             if ($response->successful()) {
                 $responseData = $response->json();
                 
-                // Handle both array and object responses
                 if (is_array($responseData) && isset($responseData[0]['BillCode'])) {
                     $billInfo = $responseData[0];
                 } elseif (isset($responseData['BillCode'])) {
@@ -95,7 +107,6 @@ class ToyyibpayService
                     ];
                 }
                 
-                // Update payment with Toyyibpay details
                 $payment->update([
                     'toyyibpay_bill_code' => $billInfo['BillCode'],
                     'toyyibpay_bill_external_ref' => $billExternalRef,
@@ -148,10 +159,13 @@ class ToyyibpayService
     public function getBillTransactions(string $billCode): array
     {
         try {
-            $response = Http::timeout(30)->asForm()->post($this->baseUrl . '/index.php/api/getBillTransactions', [
-                'billCode' => $billCode,
-                'userSecretKey' => $this->apiKey,
-            ]);
+            $response = $this->getHttpClient()
+                ->timeout(30)
+                ->asForm()
+                ->post($this->baseUrl . '/index.php/api/getBillTransactions', [
+                    'billCode' => $billCode,
+                    'userSecretKey' => $this->apiKey,
+                ]);
 
             if ($response->successful()) {
                 return $response->json();
@@ -170,7 +184,6 @@ class ToyyibpayService
 
     public function verifyCallback(array $callbackData): bool
     {
-        // Basic validation - ToyyibPay callbacks might have different field names
         $requiredFields = ['billcode'];
         
         foreach ($requiredFields as $field) {
@@ -199,7 +212,6 @@ class ToyyibpayService
         $status = $callbackData['status_id'] ?? $callbackData['status'] ?? '0';
         $amount = isset($callbackData['amount']) ? $callbackData['amount'] / 100 : 0;
 
-        // Find payment by bill code
         $payment = Payment::where('toyyibpay_bill_code', $billCode)->first();
 
         if (!$payment) {
@@ -214,8 +226,7 @@ class ToyyibpayService
             ];
         }
 
-        // Process based on status
-        if ($status == '1') { // Success
+        if ($status == '1') {
             if ($payment->isPending()) {
                 $payment->markAsSuccess($callbackData);
                 
@@ -232,7 +243,6 @@ class ToyyibpayService
                 'message' => 'Payment completed successfully',
             ];
         } else {
-            // Failed payment
             if ($payment->isPending()) {
                 $payment->markAsFailed($callbackData);
                 
@@ -254,13 +264,13 @@ class ToyyibpayService
     public function testConnection(): array
     {
         try {
-            // Test with a simple API call to check configuration
             $testData = [
                 'userSecretKey' => $this->apiKey,
                 'categoryCode' => $this->categoryCode,
             ];
 
-            $response = Http::timeout(10)
+            $response = $this->getHttpClient()
+                ->timeout(10)
                 ->asForm()
                 ->post($this->baseUrl . '/index.php/api/getCategoryDetails', $testData);
 
