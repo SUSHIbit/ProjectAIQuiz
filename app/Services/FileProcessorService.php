@@ -24,8 +24,11 @@ class FileProcessorService
                 case 'doc':
                 case 'docx':
                     return $this->extractFromDocx($fullPath);
+                case 'ppt':
+                case 'pptx':
+                    return $this->extractFromPowerPoint($fullPath);
                 default:
-                    throw new \Exception('Unsupported file type');
+                    throw new \Exception('Unsupported file type: ' . $extension);
             }
         } catch (\Exception $e) {
             Log::error('File processing error', [
@@ -40,7 +43,6 @@ class FileProcessorService
     private function extractFromPdf(string $filePath): string
     {
         try {
-            // Validate file exists and is readable
             if (!is_readable($filePath)) {
                 throw new \Exception('PDF file is not readable or accessible');
             }
@@ -50,15 +52,12 @@ class FileProcessorService
                 throw new \Exception('PDF file is empty or corrupted');
             }
 
-            // Use smalot/pdfparser for better PDF text extraction
             $parser = new Parser();
             $pdf = $parser->parseFile($filePath);
             
-            // Extract text from all pages
             $text = $pdf->getText();
             
             if (empty(trim($text))) {
-                // Try alternative extraction method
                 $text = $this->extractPdfAlternative($pdf);
             }
             
@@ -66,7 +65,6 @@ class FileProcessorService
                 throw new \Exception('No readable text content found in PDF. The PDF might contain only images, scanned content, or be password-protected. Please try uploading a text-based PDF document.');
             }
 
-            // Clean up the extracted text
             $cleanedText = $this->cleanExtractedText($text);
             
             if (strlen($cleanedText) < 50) {
@@ -78,7 +76,6 @@ class FileProcessorService
         } catch (\Exception $e) {
             $errorMessage = $e->getMessage();
             
-            // Provide more specific error messages
             if (strpos($errorMessage, 'Unable to find') !== false || strpos($errorMessage, 'Cannot open') !== false) {
                 throw new \Exception('Cannot open PDF file. The file might be corrupted, password-protected, or use an unsupported PDF format.');
             }
@@ -125,16 +122,13 @@ class FileProcessorService
                 throw new \Exception('Cannot open DOCX file. The file might be corrupted or use an unsupported format.');
             }
 
-            // Extract document content
             $content = '';
             
-            // Try to get document.xml
             $documentXml = $zip->getFromName('word/document.xml');
             if ($documentXml !== false) {
                 $content .= $this->extractTextFromXml($documentXml);
             }
             
-            // Try to get header files
             for ($i = 1; $i <= 3; $i++) {
                 $headerXml = $zip->getFromName("word/header{$i}.xml");
                 if ($headerXml !== false) {
@@ -142,7 +136,6 @@ class FileProcessorService
                 }
             }
             
-            // Try to get footer files
             for ($i = 1; $i <= 3; $i++) {
                 $footerXml = $zip->getFromName("word/footer{$i}.xml");
                 if ($footerXml !== false) {
@@ -156,7 +149,6 @@ class FileProcessorService
                 throw new \Exception('No readable text content found in DOCX file');
             }
 
-            // Clean up the extracted text
             $cleanedText = $this->cleanExtractedText($content);
             
             if (strlen($cleanedText) < 50) {
@@ -173,14 +165,76 @@ class FileProcessorService
         }
     }
 
+    private function extractFromPowerPoint(string $filePath): string
+    {
+        if (!is_readable($filePath)) {
+            throw new \Exception('PowerPoint file is not readable or accessible');
+        }
+
+        try {
+            $zip = new \ZipArchive();
+            $result = $zip->open($filePath);
+            
+            if ($result !== TRUE) {
+                throw new \Exception('Cannot open PowerPoint file. The file might be corrupted or use an unsupported format.');
+            }
+
+            $content = '';
+            
+            // Extract text from all slides
+            for ($i = 1; $i <= 100; $i++) { // Check up to 100 slides
+                $slideXml = $zip->getFromName("ppt/slides/slide{$i}.xml");
+                if ($slideXml !== false) {
+                    $slideText = $this->extractTextFromPowerPointXml($slideXml);
+                    if (!empty(trim($slideText))) {
+                        $content .= $slideText . "\n";
+                    }
+                } else {
+                    break; // No more slides
+                }
+            }
+            
+            // Extract from slide masters if available
+            for ($i = 1; $i <= 10; $i++) {
+                $masterXml = $zip->getFromName("ppt/slideMasters/slideMaster{$i}.xml");
+                if ($masterXml !== false) {
+                    $masterText = $this->extractTextFromPowerPointXml($masterXml);
+                    if (!empty(trim($masterText))) {
+                        $content .= $masterText . "\n";
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            $zip->close();
+
+            if (empty(trim($content))) {
+                throw new \Exception('No readable text content found in PowerPoint file. The presentation might contain only images or have no text content.');
+            }
+
+            $cleanedText = $this->cleanExtractedText($content);
+            
+            if (strlen($cleanedText) < 50) {
+                throw new \Exception('PowerPoint contains very little readable text. Please ensure your presentation has substantial text content for quiz generation.');
+            }
+
+            return $cleanedText;
+
+        } catch (\Exception $e) {
+            if (strpos($e->getMessage(), 'Cannot open PowerPoint') !== false) {
+                throw $e;
+            }
+            throw new \Exception('Error processing PowerPoint file: ' . $e->getMessage());
+        }
+    }
+
     private function extractTextFromXml(string $xml): string
     {
         try {
-            // Load XML and extract text content
             $dom = new \DOMDocument();
             $dom->loadXML($xml);
             
-            // Get all text nodes
             $xpath = new \DOMXPath($dom);
             $textNodes = $xpath->query('//w:t');
             
@@ -191,7 +245,34 @@ class FileProcessorService
             
             return $text;
         } catch (\Exception $e) {
-            // Fallback to simple strip_tags
+            $text = strip_tags($xml);
+            $text = html_entity_decode($text);
+            return $text;
+        }
+    }
+
+    private function extractTextFromPowerPointXml(string $xml): string
+    {
+        try {
+            $dom = new \DOMDocument();
+            $dom->loadXML($xml);
+            
+            $xpath = new \DOMXPath($dom);
+            
+            // PowerPoint uses a:t for text nodes
+            $textNodes = $xpath->query('//a:t');
+            
+            $text = '';
+            foreach ($textNodes as $node) {
+                $nodeText = trim($node->nodeValue);
+                if (!empty($nodeText)) {
+                    $text .= $nodeText . ' ';
+                }
+            }
+            
+            return $text;
+        } catch (\Exception $e) {
+            // Fallback: simple text extraction
             $text = strip_tags($xml);
             $text = html_entity_decode($text);
             return $text;
@@ -213,7 +294,6 @@ class FileProcessorService
         $words = explode(' ', $text);
         $cleanWords = array_filter($words, function($word) {
             $word = trim($word);
-            // Keep words that are at least 2 characters or are single letters/numbers
             return strlen($word) >= 2 || ctype_alnum($word);
         });
         
@@ -228,19 +308,18 @@ class FileProcessorService
 
         $fullPath = Storage::path($filePath);
         $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
-        $allowedExtensions = ['pdf', 'doc', 'docx'];
+        $allowedExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
 
         if (!in_array(strtolower($extension), $allowedExtensions)) {
             return false;
         }
 
-        // Check file size (max 10MB)
+        // Check file size (max 15MB for PowerPoint files)
         $fileSize = Storage::size($filePath);
-        if ($fileSize > 10 * 1024 * 1024) {
+        if ($fileSize > 15 * 1024 * 1024) {
             return false;
         }
 
-        // Check if file is actually readable
         if (!is_readable($fullPath)) {
             return false;
         }
@@ -267,14 +346,12 @@ class FileProcessorService
             return $validation;
         }
 
-        // Count words and characters
         $wordCount = str_word_count($content);
         $characterCount = strlen($content);
 
         $validation['wordCount'] = $wordCount;
         $validation['characterCount'] = $characterCount;
 
-        // More lenient requirements for word count
         if ($wordCount < 15) {
             $validation['isValid'] = false;
             $validation['errors'][] = "Content too short - extracted only {$wordCount} words. Need at least 15 words for meaningful quiz generation.";
@@ -282,18 +359,15 @@ class FileProcessorService
             $validation['warnings'][] = "Content is quite short ({$wordCount} words). Consider uploading a document with more content for better quiz generation.";
         }
 
-        // Character count validation
         if ($characterCount < 75) {
             $validation['isValid'] = false;
             $validation['errors'][] = "Content too brief - extracted only {$characterCount} characters. Need substantial text content.";
         }
 
-        // Calculate readable character ratio
         $alphaNumericCount = preg_match_all('/[a-zA-Z0-9]/', $content);
         $readableRatio = $characterCount > 0 ? $alphaNumericCount / $characterCount : 0;
         $validation['readableRatio'] = $readableRatio;
 
-        // More lenient readable ratio requirements
         if ($readableRatio < 0.25) {
             $validation['isValid'] = false;
             $validation['errors'][] = "Content appears to contain mostly non-readable characters. The file might be corrupted, password-protected, or contain mostly images.";
@@ -301,7 +375,6 @@ class FileProcessorService
             $validation['warnings'][] = "Content has a low ratio of readable text. Quiz quality might be affected.";
         }
 
-        // Check for meaningful sentences
         $sentences = preg_split('/[.!?]+/', $content);
         $meaningfulSentences = array_filter($sentences, function($sentence) {
             $sentence = trim($sentence);
@@ -313,7 +386,6 @@ class FileProcessorService
             $validation['errors'][] = "Content contains very few complete sentences. The file might not be suitable for quiz generation.";
         }
 
-        // Check for repeated patterns that might indicate extraction errors
         $words = str_word_count($content, 1);
         if (count($words) > 0) {
             $wordCounts = array_count_values($words);

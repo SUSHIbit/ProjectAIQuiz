@@ -17,8 +17,8 @@ class FileUploadRequest extends FormRequest
             'file' => [
                 'required',
                 'file',
-                'mimes:pdf,doc,docx',
-                'max:10240', // 10MB max
+                'mimes:pdf,doc,docx,ppt,pptx',
+                'max:15360', // 15MB max (increased for PowerPoint files)
             ],
         ];
     }
@@ -27,8 +27,8 @@ class FileUploadRequest extends FormRequest
     {
         return [
             'file.required' => 'Please select a file to upload.',
-            'file.mimes' => 'Only PDF and DOC/DOCX files are allowed.',
-            'file.max' => 'File size cannot exceed 10MB.',
+            'file.mimes' => 'Only PDF, DOC/DOCX, and PPT/PPTX files are allowed.',
+            'file.max' => 'File size cannot exceed 15MB.',
         ];
     }
 }
