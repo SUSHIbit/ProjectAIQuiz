@@ -14,10 +14,26 @@ class AdminController extends Controller
         $freeUsers = User::where('tier', 'free')->where('role', 'user')->count();
         $premiumUsers = User::where('tier', 'premium')->where('role', 'user')->count();
         $totalRevenue = Payment::where('status', 'success')->sum('amount');
+        
+        // Payment statistics
+        $totalPayments = Payment::count();
+        $successfulPayments = Payment::where('status', 'success')->count();
+        $pendingPayments = Payment::where('status', 'pending')->count();
+        $failedPayments = Payment::where('status', 'failed')->count();
+        
         $recentPayments = Payment::with('user')
-            ->where('status', 'success')
             ->latest()
             ->take(10)
+            ->get();
+
+        // Monthly revenue (last 12 months)
+        $monthlyRevenue = Payment::where('status', 'success')
+            ->where('created_at', '>=', now()->subYear())
+            ->selectRaw('MONTH(created_at) as month, YEAR(created_at) as year, SUM(amount) as total')
+            ->groupBy('year', 'month')
+            ->orderBy('year', 'desc')
+            ->orderBy('month', 'desc')
+            ->take(12)
             ->get();
 
         return view('admin.dashboard', compact(
@@ -25,14 +41,24 @@ class AdminController extends Controller
             'freeUsers', 
             'premiumUsers',
             'totalRevenue',
-            'recentPayments'
+            'totalPayments',
+            'successfulPayments',
+            'pendingPayments',
+            'failedPayments',
+            'recentPayments',
+            'monthlyRevenue'
         ));
     }
 
     public function users()
     {
         $users = User::where('role', 'user')
-            ->withCount('payments')
+            ->withCount(['payments as successful_payments_count' => function ($query) {
+                $query->where('status', 'success');
+            }])
+            ->withSum(['payments as total_spent' => function ($query) {
+                $query->where('status', 'success');
+            }], 'amount')
             ->latest()
             ->paginate(20);
 
@@ -45,6 +71,15 @@ class AdminController extends Controller
             ->latest()
             ->paginate(20);
 
-        return view('admin.payments', compact('payments'));
+        $stats = [
+            'total_payments' => Payment::count(),
+            'successful_payments' => Payment::where('status', 'success')->count(),
+            'pending_payments' => Payment::where('status', 'pending')->count(),
+            'failed_payments' => Payment::where('status', 'failed')->count(),
+            'total_revenue' => Payment::where('status', 'success')->sum('amount'),
+            'average_payment' => Payment::where('status', 'success')->avg('amount'),
+        ];
+
+        return view('admin.payments', compact('payments', 'stats'));
     }
 }

@@ -33,7 +33,15 @@ return [
 
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
-        'organization' => env('OPENAI_ORGANIZATION'),
+    ],
+
+    'toyyibpay' => [
+        'api_key' => env('TOYYIBPAY_API_KEY'),
+        'category_code' => env('TOYYIBPAY_CATEGORY_CODE'),
+        'base_url' => env('TOYYIBPAY_BASE_URL', 'https://dev.toyyibpay.com'),
+        'sandbox' => env('TOYYIBPAY_SANDBOX', true),
+        'webhook_url' => env('APP_URL') . '/payment/callback',
+        'return_url' => env('APP_URL') . '/payment/return',
     ],
 
 ];

@@ -1,4 +1,5 @@
 <?php
+// routes/web.php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuizController;
@@ -6,6 +7,7 @@ use App\Http\Controllers\TierController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FlashcardController;
@@ -18,12 +20,29 @@ Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 Route::post('/upload-file', [WelcomeController::class, 'uploadFile'])->name('file.upload');
 Route::delete('/remove-file', [WelcomeController::class, 'removeFile'])->name('file.remove');
 
+// Public payment callback routes (no auth required for ToyyibPay callbacks)
+Route::prefix('payment')->name('payment.')->group(function () {
+    Route::post('/callback', [PaymentController::class, 'callback'])->name('callback');
+    Route::get('/return', [PaymentController::class, 'return'])->name('return');
+});
+
 // Tier management routes
 Route::middleware('auth')->group(function () {
     Route::get('/tier/upgrade', [TierController::class, 'upgrade'])->name('tier.upgrade');
     Route::get('/tier/compare', [TierController::class, 'compare'])->name('tier.compare');
     Route::post('/tier/upgrade', [TierController::class, 'processUpgrade'])->name('tier.process-upgrade');
     Route::post('/tier/decrement-attempts', [TierController::class, 'decrementAttempts'])->name('tier.decrement');
+});
+
+// Payment routes (protected by auth)
+Route::middleware('auth')->prefix('payment')->name('payment.')->group(function () {
+    Route::post('/initiate', [PaymentController::class, 'initiate'])->name('initiate');
+    Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
+    Route::get('/{payment}/status', [PaymentController::class, 'status'])->name('status');
+    Route::post('/{payment}/cancel', [PaymentController::class, 'cancel'])->name('cancel');
+    Route::get('/{payment}/success', [PaymentController::class, 'success'])->name('success');
+    Route::get('/{payment}/failed', [PaymentController::class, 'failed'])->name('failed');
+    Route::get('/history/list', [PaymentController::class, 'history'])->name('history');
 });
 
 // Quiz routes (protected by auth and tier middleware)
@@ -82,6 +101,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
 });
 
+// Analytics Routes
 Route::middleware(['auth'])->group(function () {
     // User Analytics
     Route::get('/analytics', [AnalyticsController::class, 'userDashboard'])->name('analytics.dashboard');
@@ -94,6 +114,7 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
+// Flashcard Routes (Premium only)
 Route::middleware(['auth', 'premium'])->prefix('flashcards')->name('flashcards.')->group(function () {
     Route::get('/', [FlashcardController::class, 'index'])->name('index');
     Route::get('/create', [FlashcardController::class, 'create'])->name('create');
@@ -113,6 +134,24 @@ Route::middleware(['auth', 'premium'])->prefix('flashcards')->name('flashcards.'
     
     // Bulk operations
     Route::delete('/bulk/delete', [FlashcardController::class, 'bulkDelete'])->name('bulk.delete');
+});
+
+// Test Routes (ONLY for development/testing - remove in production)
+Route::middleware('auth')->prefix('test')->name('test.')->group(function () {
+    Route::get('/payment', function () {
+        return view('test-payment');
+    })->name('payment');
+    
+    Route::get('/payment/config', function () {
+        return response()->json([
+            'api_key' => config('services.toyyibpay.api_key') ? 'Set ✅' : 'Not Set ❌',
+            'category_code' => config('services.toyyibpay.category_code') ? 'Set ✅' : 'Not Set ❌',
+            'base_url' => config('services.toyyibpay.base_url'),
+            'sandbox' => config('services.toyyibpay.sandbox') ? 'Enabled ✅' : 'Disabled',
+            'callback_url' => route('payment.callback'),
+            'return_url' => route('payment.return'),
+        ]);
+    })->name('payment.config');
 });
 
 require __DIR__.'/auth.php';

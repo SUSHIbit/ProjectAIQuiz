@@ -31,7 +31,7 @@ class TierController extends Controller
     }
 
     /**
-     * Simulate upgrade process (will be replaced with actual payment in Phase 11)
+     * Process upgrade - redirect to payment
      */
     public function processUpgrade(Request $request)
     {
@@ -42,15 +42,7 @@ class TierController extends Controller
                 ->with('info', 'You already have Premium access!');
         }
 
-        // For now, we'll simulate the upgrade process
-        // In Phase 11, this will be replaced with actual Toyyibpay integration
-        $user->update([
-            'tier' => 'premium',
-            'question_attempts' => 999 // Unlimited represented as 999
-        ]);
-
-        return redirect()->route('dashboard')
-            ->with('success', 'Congratulations! You have been upgraded to Premium! (Simulated upgrade - payment integration will be added in Phase 11)');
+        return redirect()->route('payment.initiate');
     }
 
     /**
