@@ -42,6 +42,9 @@ Route::middleware('auth')->prefix('payment')->name('payment.')->group(function (
     Route::get('/{payment}/success', [PaymentController::class, 'success'])->name('success');
     Route::get('/{payment}/failed', [PaymentController::class, 'failed'])->name('failed');
     Route::get('/history/list', [PaymentController::class, 'history'])->name('history');
+    
+    // Debug route (remove in production)
+    Route::get('/debug/config', [PaymentController::class, 'debug'])->name('debug');
 });
 
 // Quiz routes (protected by auth and tier middleware)

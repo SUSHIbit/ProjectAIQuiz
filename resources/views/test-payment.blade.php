@@ -43,12 +43,12 @@
                     <!-- Test Actions -->
                     <div class="space-y-4">
                         <div class="flex flex-col sm:flex-row gap-4">
-                            <a href="{{ route('test.payment.config') }}" target="_blank" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                            <button id="check-config" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 Check Configuration
-                            </a>
+                            </button>
                             
                             <a href="{{ route('payment.initiate') }}" class="inline-flex items-center justify-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,6 +64,12 @@
                                 Payment History
                             </a>
                         </div>
+                    </div>
+
+                    <!-- Debug Results -->
+                    <div id="debug-results" class="hidden mt-6 bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-medium text-gray-900 mb-2">Debug Results:</h4>
+                        <pre id="debug-output" class="text-xs bg-white p-3 rounded border overflow-auto max-h-60"></pre>
                     </div>
 
                     <!-- Test Card Information -->
@@ -88,6 +94,29 @@
                         </div>
                     </div>
 
+                    <!-- Recent Payments -->
+                    @php
+                        $recentPayments = auth()->user()->payments()->latest()->take(5)->get();
+                    @endphp
+                    
+                    @if($recentPayments->count() > 0)
+                    <div class="mt-6 bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-medium text-gray-900 mb-2">Recent Payments:</h4>
+                        <div class="space-y-2">
+                            @foreach($recentPayments as $payment)
+                            <div class="flex items-center justify-between bg-white p-2 rounded text-sm">
+                                <span>{{ $payment->payment_ref }}</span>
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $payment->status_badge_color }}">
+                                    {{ ucfirst($payment->status) }}
+                                </span>
+                                <span>{{ $payment->formatted_amount }}</span>
+                                <span>{{ $payment->created_at->format('M d, H:i') }}</span>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
                     <!-- Back to Dashboard -->
                     <div class="mt-6 pt-6 border-t border-gray-200 text-center">
                         <a href="{{ route('dashboard') }}" class="text-gray-600 hover:text-gray-500 text-sm">
@@ -98,4 +127,39 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkConfigBtn = document.getElementById('check-config');
+            const debugResults = document.getElementById('debug-results');
+            const debugOutput = document.getElementById('debug-output');
+
+            if (checkConfigBtn) {
+                checkConfigBtn.addEventListener('click', function() {
+                    checkConfigBtn.disabled = true;
+                    checkConfigBtn.textContent = 'Checking...';
+
+                    fetch('{{ route("payment.debug") }}')
+                        .then(response => response.json())
+                        .then(data => {
+                            debugOutput.textContent = JSON.stringify(data, null, 2);
+                            debugResults.classList.remove('hidden');
+                        })
+                        .catch(error => {
+                            debugOutput.textContent = 'Error: ' + error.message;
+                            debugResults.classList.remove('hidden');
+                        })
+                        .finally(() => {
+                            checkConfigBtn.disabled = false;
+                            checkConfigBtn.innerHTML = `
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Check Configuration
+                            `;
+                        });
+                });
+            }
+        });
+    </script>
 </x-app-layout>

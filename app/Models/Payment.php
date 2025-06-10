@@ -96,8 +96,14 @@ class Payment extends Model
     public function getPaymentUrlAttribute(): ?string
     {
         if ($this->toyyibpay_bill_code && $this->isPending()) {
-            return "https://toyyibpay.com/{$this->toyyibpay_bill_code}";
+            return config('services.toyyibpay.base_url') . '/' . $this->toyyibpay_bill_code;
         }
+        
+        // Also check if payment URL is stored in response data
+        if (isset($this->toyyibpay_response['payment_url'])) {
+            return $this->toyyibpay_response['payment_url'];
+        }
+        
         return null;
     }
 
@@ -129,5 +135,20 @@ class Payment extends Model
         $this->update([
             'status' => 'expired',
         ]);
+    }
+
+    // Debug helper
+    public function getDebugInfoAttribute(): array
+    {
+        return [
+            'id' => $this->id,
+            'payment_ref' => $this->payment_ref,
+            'toyyibpay_bill_code' => $this->toyyibpay_bill_code,
+            'status' => $this->status,
+            'amount' => $this->amount,
+            'created_at' => $this->created_at->toISOString(),
+            'payment_url' => $this->payment_url,
+            'toyyibpay_response' => $this->toyyibpay_response,
+        ];
     }
 }

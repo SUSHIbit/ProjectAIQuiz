@@ -22,6 +22,11 @@ class PaymentController extends Controller
     {
         $user = auth()->user();
 
+        Log::info('Payment initiation started', [
+            'user_id' => $user->id,
+            'user_tier' => $user->tier,
+        ]);
+
         // Check if user is already premium
         if ($user->isPremium()) {
             return redirect()->route('dashboard')
@@ -35,6 +40,10 @@ class PaymentController extends Controller
             ->first();
 
         if ($existingPayment && $existingPayment->payment_url) {
+            Log::info('Redirecting to existing payment', [
+                'payment_id' => $existingPayment->id,
+                'payment_url' => $existingPayment->payment_url,
+            ]);
             return redirect()->away($existingPayment->payment_url);
         }
 
@@ -49,6 +58,11 @@ class PaymentController extends Controller
                 'status' => 'pending',
             ]);
 
+            Log::info('Payment record created', [
+                'payment_id' => $payment->id,
+                'payment_ref' => $payment->payment_ref,
+            ]);
+
             // Create bill with Toyyibpay
             $billResult = $this->toyyibpayService->createBill($payment);
 
@@ -60,6 +74,13 @@ class PaymentController extends Controller
                     'payment_id' => $payment->id,
                     'bill_code' => $billResult['bill_code'],
                     'payment_url' => $billResult['payment_url']
+                ]);
+                
+                // Store payment URL for future reference
+                $payment->update([
+                    'toyyibpay_response' => array_merge($payment->toyyibpay_response ?? [], [
+                        'payment_url' => $billResult['payment_url']
+                    ])
                 ]);
                 
                 // Redirect directly to ToyyibPay
@@ -290,5 +311,30 @@ class PaymentController extends Controller
             ->paginate(10);
 
         return view('payment.history', compact('payments', 'user'));
+    }
+
+    // Debug method - remove in production
+    public function debug(Request $request)
+    {
+        try {
+            $testResult = $this->toyyibpayService->testConnection();
+            
+            return response()->json([
+                'config' => [
+                    'api_key' => config('services.toyyibpay.api_key') ? 'SET (length: ' . strlen(config('services.toyyibpay.api_key')) . ')' : 'NOT SET',
+                    'category_code' => config('services.toyyibpay.category_code') ?: 'NOT SET',
+                    'base_url' => config('services.toyyibpay.base_url'),
+                    'sandbox' => config('services.toyyibpay.sandbox') ? 'true' : 'false',
+                ],
+                'test_connection' => $testResult,
+                'callback_url' => route('payment.callback'),
+                'return_url' => route('payment.return'),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
     }
 }

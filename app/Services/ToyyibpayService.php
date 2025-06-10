@@ -56,12 +56,15 @@ class ToyyibpayService
 
         Log::info('Creating Toyyibpay bill', [
             'payment_id' => $payment->id,
-            'bill_data' => $billData,
+            'bill_data' => array_merge($billData, ['userSecretKey' => '[HIDDEN]']), // Hide API key in logs
             'api_url' => $this->baseUrl . '/index.php/api/createBill'
         ]);
 
         try {
             $response = Http::timeout(30)
+                ->withHeaders([
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ])
                 ->asForm() // Send as form data
                 ->post($this->baseUrl . '/index.php/api/createBill', $billData);
             
@@ -88,7 +91,7 @@ class ToyyibpayService
                     
                     return [
                         'success' => false,
-                        'message' => 'Unexpected response format from payment gateway',
+                        'message' => 'Unexpected response format from payment gateway: ' . json_encode($responseData),
                     ];
                 }
                 
@@ -115,15 +118,17 @@ class ToyyibpayService
                     'external_ref' => $billExternalRef,
                 ];
             } else {
+                $errorBody = $response->body();
                 Log::error('Toyyibpay API request failed', [
                     'payment_id' => $payment->id,
                     'status' => $response->status(),
-                    'response' => $response->body(),
+                    'response' => $errorBody,
                 ]);
                 
                 return [
                     'success' => false,
-                    'message' => 'Payment service returned error code: ' . $response->status(),
+                    'message' => 'Payment service returned error: ' . $errorBody,
+                    'status_code' => $response->status(),
                 ];
             }
         } catch (\Exception $e) {
@@ -242,6 +247,41 @@ class ToyyibpayService
                 'success' => false,
                 'payment' => $payment,
                 'message' => 'Payment failed or was cancelled',
+            ];
+        }
+    }
+
+    public function testConnection(): array
+    {
+        try {
+            // Test with a simple API call to check configuration
+            $testData = [
+                'userSecretKey' => $this->apiKey,
+                'categoryCode' => $this->categoryCode,
+            ];
+
+            $response = Http::timeout(10)
+                ->asForm()
+                ->post($this->baseUrl . '/index.php/api/getCategoryDetails', $testData);
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'message' => 'Connection successful',
+                    'response' => $response->json(),
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Connection failed',
+                    'status' => $response->status(),
+                    'response' => $response->body(),
+                ];
+            }
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Connection error: ' . $e->getMessage(),
             ];
         }
     }
