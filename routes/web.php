@@ -105,37 +105,52 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
 // Analytics Routes
 Route::middleware(['auth'])->group(function () {
-    // User Analytics
-    Route::get('/analytics', [AnalyticsController::class, 'userDashboard'])->name('analytics.dashboard');
-    Route::get('/analytics/subject', [AnalyticsController::class, 'subjectAnalytics'])->name('analytics.subject');
-    Route::get('/analytics/export', [AnalyticsController::class, 'exportUserData'])->name('analytics.export');
+    // Analytics upgrade page (accessible to all authenticated users)
+    Route::get('/analytics/upgrade', function () {
+        return view('analytics.upgrade');
+    })->name('analytics.upgrade');
     
-    // Admin Analytics (Protected by admin middleware)
+    // User Analytics (Premium only)
+    Route::middleware(['premium:analytics'])->group(function () {
+        Route::get('/analytics', [AnalyticsController::class, 'userDashboard'])->name('analytics.dashboard');
+        Route::get('/analytics/subject', [AnalyticsController::class, 'subjectAnalytics'])->name('analytics.subject');
+        Route::get('/analytics/export', [AnalyticsController::class, 'exportUserData'])->name('analytics.export');
+    });
+    
+    // Admin Analytics (Protected by admin middleware only - no premium restriction)
     Route::middleware(['admin'])->group(function () {
         Route::get('/admin/analytics', [AnalyticsController::class, 'adminAnalytics'])->name('admin.analytics');
     });
 });
 
 // Flashcard Routes (Premium only)
-Route::middleware(['auth', 'premium'])->prefix('flashcards')->name('flashcards.')->group(function () {
-    Route::get('/', [FlashcardController::class, 'index'])->name('index');
-    Route::get('/create', [FlashcardController::class, 'create'])->name('create');
-    Route::post('/store', [FlashcardController::class, 'store'])->name('store');
-    Route::get('/{flashcard}', [FlashcardController::class, 'show'])->name('show');
-    Route::get('/{flashcard}/edit', [FlashcardController::class, 'edit'])->name('edit');
-    Route::put('/{flashcard}', [FlashcardController::class, 'update'])->name('update');
-    Route::delete('/{flashcard}', [FlashcardController::class, 'destroy'])->name('destroy');
+Route::middleware(['auth'])->group(function () {
+    // Flashcards upgrade page (accessible to all authenticated users)
+    Route::get('/flashcards/upgrade', function () {
+        return view('flashcards.upgrade');
+    })->name('flashcards.upgrade');
     
-    // Study routes
-    Route::get('/study/session', [FlashcardController::class, 'study'])->name('study');
-    Route::post('/{flashcard}/mark-studied', [FlashcardController::class, 'markStudied'])->name('mark-studied');
-    
-    // AI Generation routes
-    Route::get('/ai/generator', [FlashcardController::class, 'aiGenerator'])->name('ai.generator');
-    Route::post('/ai/generate', [FlashcardController::class, 'generateAI'])->name('ai.generate');
-    
-    // Bulk operations
-    Route::delete('/bulk/delete', [FlashcardController::class, 'bulkDelete'])->name('bulk.delete');
+    // Premium Flashcard Routes
+    Route::middleware(['premium:flashcards'])->prefix('flashcards')->name('flashcards.')->group(function () {
+        Route::get('/', [FlashcardController::class, 'index'])->name('index');
+        Route::get('/create', [FlashcardController::class, 'create'])->name('create');
+        Route::post('/store', [FlashcardController::class, 'store'])->name('store');
+        Route::get('/{flashcard}', [FlashcardController::class, 'show'])->name('show');
+        Route::get('/{flashcard}/edit', [FlashcardController::class, 'edit'])->name('edit');
+        Route::put('/{flashcard}', [FlashcardController::class, 'update'])->name('update');
+        Route::delete('/{flashcard}', [FlashcardController::class, 'destroy'])->name('destroy');
+        
+        // Study routes
+        Route::get('/study/session', [FlashcardController::class, 'study'])->name('study');
+        Route::post('/{flashcard}/mark-studied', [FlashcardController::class, 'markStudied'])->name('mark-studied');
+        
+        // AI Generation routes
+        Route::get('/ai/generator', [FlashcardController::class, 'aiGenerator'])->name('ai.generator');
+        Route::post('/ai/generate', [FlashcardController::class, 'generateAI'])->name('ai.generate');
+        
+        // Bulk operations
+        Route::delete('/bulk/delete', [FlashcardController::class, 'bulkDelete'])->name('bulk.delete');
+    });
 });
 
 // Test Routes (ONLY for development/testing - remove in production)

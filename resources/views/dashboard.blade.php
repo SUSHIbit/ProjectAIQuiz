@@ -180,13 +180,13 @@
            </div>
 
            @if($user->isPremium())
-           <!-- Flashcards (Premium only) -->
-           <div class="bg-white overflow-hidden shadow-sm rounded-lg border-2 border-yellow-200">
+           <!-- Flashcards (Premium) -->
+           <div class="bg-white overflow-hidden shadow-sm rounded-lg border-2 border-amber-200">
                <div class="p-6">
                   <div class="flex items-center">
                       <div class="flex-shrink-0">
-                          <div class="bg-yellow-100 p-3 rounded-full">
-                              <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div class="bg-amber-100 p-3 rounded-full">
+                              <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                               </svg>
                           </div>
@@ -194,7 +194,7 @@
                       <div class="ml-4">
                           <h3 class="text-lg font-medium text-slate-900">Flashcards</h3>
                           <p class="text-sm text-slate-500">Create and study with flashcards</p>
-                          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">
+                          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 mt-1">
                               <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
                               </svg>
@@ -203,14 +203,14 @@
                       </div>
                   </div>
                   <div class="mt-4 flex space-x-2">
-                      <a href="{{ route('flashcards.index') }}" class="inline-flex items-center text-sm font-medium text-yellow-600 hover:text-yellow-500">
+                      <a href="{{ route('flashcards.index') }}" class="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-500">
                           Manage Flashcards
                           <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                           </svg>
                       </a>
                       <span class="text-slate-300">|</span>
-                      <a href="{{ route('flashcards.create') }}" class="inline-flex items-center text-sm font-medium text-yellow-600 hover:text-yellow-500">
+                      <a href="{{ route('flashcards.create') }}" class="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-500">
                           Create New
                       </a>
                   </div>
@@ -240,7 +240,7 @@
                       </div>
                   </div>
                   <div class="mt-4">
-                      <a href="{{ route('tier.upgrade') }}" class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-500">
+                      <a href="{{ route('flashcards.upgrade') }}" class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-500">
                           Upgrade to Unlock
                           <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
@@ -252,6 +252,7 @@
           @endif
 
           <!-- Analytics -->
+          @if($user->isPremium())
           <div class="bg-white overflow-hidden shadow-sm rounded-lg">
               <div class="p-6">
                   <div class="flex items-center">
@@ -265,11 +266,12 @@
                       <div class="ml-4">
                           <h3 class="text-lg font-medium text-slate-900">Analytics</h3>
                           <p class="text-sm text-slate-500">Track your quiz performance</p>
-                          @if($user->isPremium())
-                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mt-1">
-                                  Enhanced for Premium
-                              </span>
-                          @endif
+                          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mt-1">
+                              <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                              </svg>
+                              Premium Feature
+                          </span>
                       </div>
                   </div>
                   <div class="mt-4">
@@ -282,6 +284,40 @@
                   </div>
               </div>
           </div>
+          @else
+          <!-- Analytics (Locked for Free users) -->
+          <div class="bg-slate-50 overflow-hidden shadow-sm rounded-lg border-2 border-slate-200 opacity-75">
+              <div class="p-6">
+                  <div class="flex items-center">
+                      <div class="flex-shrink-0">
+                          <div class="bg-slate-200 p-3 rounded-full">
+                              <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                              </svg>
+                          </div>
+                      </div>
+                      <div class="ml-4">
+                          <h3 class="text-lg font-medium text-slate-500">Analytics</h3>
+                          <p class="text-sm text-slate-400">Track your quiz performance</p>
+                          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-200 text-slate-600 mt-1">
+                              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                              </svg>
+                              Premium Required
+                          </span>
+                      </div>
+                  </div>
+                  <div class="mt-4">
+                      <a href="{{ route('analytics.upgrade') }}" class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-500">
+                          Upgrade to Unlock
+                          <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                          </svg>
+                      </a>
+                  </div>
+              </div>
+          </div>
+          @endif
 
           <!-- Tier Comparison -->
           <div class="bg-white overflow-hidden shadow-sm rounded-lg">
@@ -319,105 +355,105 @@
                   <div>
                       <h3 class="text-xl font-bold">🚀 Unlock Premium Features</h3>
                       <p class="mt-2 text-green-100">
-                          Get unlimited AI generations, flashcards, custom timers, and advanced analytics for just RM5 one-time!
+                          Get unlimited AI generations, flashcards, analytics, custom timers, and advanced features for just RM5 one-time!
                       </p>
                       <ul class="mt-4 space-y-1 text-sm text-green-100">
-                          <li class="flex items-center">
-                              <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              Unlimited AI quiz & flashcard generations
-                          </li>
-                          <li class="flex items-center">
-                              <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              AI-powered flashcards with study mode
-                          </li>
-                          <li class="flex items-center">
-                              <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              Custom quiz timers (5-60 minutes)
-                          </li>
-                          <li class="flex items-center">
-                              <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              Up to 30 questions per quiz
-                          </li>
-                          <li class="flex items-center">
-                              <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              Advanced analytics and progress tracking
-                          </li>
-                      </ul>
-                  </div>
-                  <div class="ml-6">
-                      <a href="{{ route('tier.upgrade') }}" class="inline-flex items-center px-6 py-3 bg-white border border-transparent rounded-md font-semibold text-sm text-green-600 uppercase tracking-widest hover:bg-slate-50 focus:bg-slate-50 active:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                          </svg>
-                          Upgrade Now - RM5
-                      </a>
-                  </div>
-              </div>
-          </div>
-      </div>
-      @endif
+                         <li class="flex items-center">
+                             <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                             </svg>
+                             Unlimited AI quiz & flashcard generations
+                         </li>
+                         <li class="flex items-center">
+                             <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                             </svg>
+                             AI-powered flashcards with study mode
+                         </li>
+                         <li class="flex items-center">
+                             <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                             </svg>
+                             Detailed analytics and progress tracking
+                         </li>
+                         <li class="flex items-center">
+                             <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                             </svg>
+                             Custom quiz timers (5-60 minutes)
+                         </li>
+                         <li class="flex items-center">
+                             <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                             </svg>
+                             Up to 30 questions per quiz
+                         </li>
+                     </ul>
+                 </div>
+                 <div class="ml-6">
+                     <a href="{{ route('tier.upgrade') }}" class="inline-flex items-center px-6 py-3 bg-white border border-transparent rounded-md font-semibold text-sm text-green-600 uppercase tracking-widest hover:bg-slate-50 focus:bg-slate-50 active:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                         </svg>
+                         Upgrade Now - RM5
+                     </a>
+                 </div>
+             </div>
+         </div>
+     </div>
+     @endif
 
-      <!-- Quick Stats for Premium Users -->
-      @if($user->isPremium())
-      <div class="mt-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg shadow-sm">
-          <div class="p-6 text-white">
-              <div class="flex items-center justify-between">
-                  <div>
-                       <h3 class="text-xl font-bold flex items-center">
-                          <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                          </svg>
-                          Premium Member Benefits
-                      </h3>
-                      <p class="mt-2 text-yellow-100">
-                          You have access to all premium features! Create unlimited AI content and track your progress.
-                      </p>
-                      <div class="mt-4 grid grid-cols-2 gap-4 text-sm text-yellow-100">
-                          <div class="flex items-center">
-                              <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              Unlimited AI Generations
-                          </div>
-                          <div class="flex items-center">
-                              <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              Flashcard Creation & Study
-                          </div>
-                          <div class="flex items-center">
-                              <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              Advanced Analytics
-                          </div>
-                          <div class="flex items-center">
-                              <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                              </svg>
-                              Custom Quiz Timers
-                          </div>
-                      </div>
-                  </div>
-                  <div class="ml-6">
-                      <div class="text-center">
-                          <div class="text-3xl font-bold text-white">∞</div>
-                          <div class="text-sm text-yellow-100">Unlimited Access</div>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>
-      @endif
-  </div>
+     <!-- Quick Stats for Premium Users -->
+     @if($user->isPremium())
+     <div class="mt-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg shadow-sm">
+         <div class="p-6 text-white">
+             <div class="flex items-center justify-between">
+                 <div>
+                      <h3 class="text-xl font-bold flex items-center">
+                         <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                         </svg>
+                         Premium Member Benefits
+                     </h3>
+                     <p class="mt-2 text-yellow-100">
+                         You have access to all premium features! Create unlimited AI content and track your progress.
+                     </p>
+                     <div class="mt-4 grid grid-cols-2 gap-4 text-sm text-yellow-100">
+                         <div class="flex items-center">
+                             <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                             </svg>
+                             Unlimited AI Generations
+                         </div>
+                         <div class="flex items-center">
+                             <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                             </svg>
+                             Flashcard Creation & Study
+                         </div>
+                         <div class="flex items-center">
+                             <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                             </svg>
+                             Advanced Analytics
+                         </div>
+                         <div class="flex items-center">
+                             <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                             </svg>
+                             Custom Quiz Timers
+                         </div>
+                     </div>
+                 </div>
+                 <div class="ml-6">
+                     <div class="text-center">
+                         <div class="text-3xl font-bold text-white">∞</div>
+                         <div class="text-sm text-yellow-100">Unlimited Access</div>
+                     </div>
+                 </div>
+             </div>
+         </div>
+     </div>
+     @endif
+ </div>
 </x-app-layout>

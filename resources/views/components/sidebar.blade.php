@@ -108,36 +108,53 @@
                     <x-sidebar-link :href="route('flashcards.index')" :active="request()->routeIs('flashcards.*')" icon="collection">
                         <div class="flex items-center justify-between w-full">
                             <span>Flashcards</span>
-                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                                 Premium
                             </span>
                         </div>
                     </x-sidebar-link>
                 @else
-                    <div class="relative group">
-                        <div class="flex items-center px-3 py-2 text-sm font-medium text-slate-400 rounded-md cursor-not-allowed">
-                            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                            <div class="flex items-center justify-between w-full">
-                                <span>Flashcards</span>
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                    </svg>
-                                    Locked
-                                </span>
-                            </div>
+                    <a href="{{ route('flashcards.upgrade') }}" class="group flex items-center px-3 py-2 text-sm font-medium text-slate-400 rounded-md hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <div class="flex items-center justify-between w-full">
+                            <span>Flashcards</span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600 group-hover:bg-slate-300">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                Locked
+                            </span>
                         </div>
-                        <div class="hidden group-hover:block absolute left-full top-0 ml-2 px-3 py-2 text-xs text-white bg-slate-900 rounded-lg whitespace-nowrap z-50">
-                            Upgrade to Premium to unlock flashcards
-                        </div>
-                    </div>
+                    </a>
                 @endif
                 
-                <x-sidebar-link :href="route('analytics.dashboard')" :active="request()->routeIs('analytics.*')" icon="chart-line">
-                    Analytics
-                </x-sidebar-link>
+                @if($user->isPremium())
+                    <x-sidebar-link :href="route('analytics.dashboard')" :active="request()->routeIs('analytics.*')" icon="chart-line">
+                        <div class="flex items-center justify-between w-full">
+                            <span>Analytics</span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Premium
+                            </span>
+                        </div>
+                    </x-sidebar-link>
+                @else
+                    <a href="{{ route('analytics.upgrade') }}" class="group flex items-center px-3 py-2 text-sm font-medium text-slate-400 rounded-md hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer">
+                        <svg class="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <div class="flex items-center justify-between w-full">
+                            <span>Analytics</span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600 group-hover:bg-slate-300">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                Locked
+                            </span>
+                        </div>
+                    </a>
+                @endif
                 
                 <x-sidebar-link :href="route('tier.compare')" :active="request()->routeIs('tier.*')" icon="star">
                     <div class="flex items-center justify-between w-full">

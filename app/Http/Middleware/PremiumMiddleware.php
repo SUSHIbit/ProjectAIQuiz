@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class PremiumMiddleware
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string $feature = null): Response
     {
         if (!auth()->check()) {
             return redirect()->route('login');
@@ -24,8 +24,20 @@ class PremiumMiddleware
                 ], 403);
             }
 
-            return redirect()->route('tier.upgrade')
-                ->with('error', 'This feature requires a Premium subscription. Please upgrade to access flashcards.');
+            // Determine redirect and message based on feature
+            $redirectRoute = 'tier.upgrade';
+            $errorMessage = 'This feature requires a Premium subscription. Please upgrade to access premium features.';
+
+            if ($feature === 'flashcards') {
+                $redirectRoute = 'flashcards.upgrade';
+                $errorMessage = 'Flashcards feature requires a Premium subscription. Please upgrade to access AI-powered flashcards.';
+            } elseif ($feature === 'analytics') {
+                $redirectRoute = 'analytics.upgrade';
+                $errorMessage = 'Analytics feature requires a Premium subscription. Please upgrade to access detailed performance insights.';
+            }
+
+            return redirect()->route($redirectRoute)
+                ->with('error', $errorMessage);
         }
 
         return $next($request);

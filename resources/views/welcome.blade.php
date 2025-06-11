@@ -63,6 +63,13 @@
                                 </svg>
                                 Create Flashcards
                             </a>
+                            @else
+                            <a href="{{ route('flashcards.upgrade') }}" class="inline-flex items-center px-6 py-3 bg-slate-400 border border-transparent rounded-lg font-semibold text-sm text-white uppercase tracking-wide hover:bg-slate-500 focus:bg-slate-500 active:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 transition ease-in-out duration-150">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                Flashcards (Premium)
+                            </a>
                             @endif
                             
                             <a href="{{ route('quiz.index') }}" class="inline-flex items-center px-6 py-3 bg-violet-600 border border-transparent rounded-lg font-semibold text-sm text-white uppercase tracking-wide hover:bg-violet-700 focus:bg-violet-700 active:bg-violet-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 transition ease-in-out duration-150">
@@ -180,45 +187,40 @@
 
                           <!-- Continue Button with Choice -->
                           <div id="continue-section" class="hidden mt-6 text-center">
-                              <p class="text-sm text-slate-600 mb-4">What would you like to generate from your uploaded file?</p>
-                              <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                                  <button id="generate-quiz-btn" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wide hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                      </svg>
-                                      Generate Quiz
-                                  </button>
-                                  
-                                  @auth
-                                  @if(auth()->user()->isPremium())
-                                  <button id="generate-flashcards-btn" class="inline-flex items-center px-4 py-2 bg-amber-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wide hover:bg-amber-700 focus:bg-amber-700 active:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                      </svg>
-                                      Generate Flashcards
-                                      <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-200 text-amber-800">
-                                          Premium
-                                      </span>
-                                  </button>
-                                  @else
-                                  <div class="relative group">
-                                      <button disabled class="inline-flex items-center px-4 py-2 bg-slate-400 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wide cursor-not-allowed opacity-60">
-                                          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                          </svg>
-                                          Generate Flashcards
-                                          <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">
-                                              Premium
-                                          </span>
-                                      </button>
-                                      <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-slate-900 rounded-lg whitespace-nowrap z-10">
-                                          Upgrade to Premium to unlock flashcards
-                                      </div>
-                                  </div>
-                                  @endif
-                                  @endauth
-                              </div>
-                          </div>
+                            <p class="text-sm text-slate-600 mb-4">What would you like to generate from your uploaded file?</p>
+                            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                                <button id="generate-quiz-btn" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wide hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                    </svg>
+                                    Generate Quiz
+                                </button>
+                                
+                                @auth
+                                @if(auth()->user()->isPremium())
+                                <button id="generate-flashcards-btn" class="inline-flex items-center px-4 py-2 bg-amber-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wide hover:bg-amber-700 focus:bg-amber-700 active:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                    Generate Flashcards
+                                    <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-200 text-amber-800">
+                                        Premium
+                                    </span>
+                                </button>
+                                @else
+                                <a href="{{ route('flashcards.upgrade') }}" class="inline-flex items-center px-4 py-2 bg-slate-400 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wide hover:bg-slate-500 focus:bg-slate-500 active:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 transition ease-in-out duration-150">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                    </svg>
+                                    Generate Flashcards
+                                    <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">
+                                        Premium
+                                    </span>
+                                </a>
+                                @endif
+                                @endauth
+                            </div>
+                        </div>
                       </div>
                   </div>
 
@@ -563,18 +565,26 @@
 
          // Generate flashcards (Premium only)
          if (generateFlashcardsBtn) {
-             generateFlashcardsBtn.addEventListener('click', function() {
-                 generateFlashcardsBtn.disabled = true;
-                 generateFlashcardsBtn.innerHTML = `
-                     <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                     </svg>
-                     Loading...
-                 `;
-                 window.location.href = '{{ route("flashcards.ai.generator") }}';
-             });
-         }
+            generateFlashcardsBtn.addEventListener('click', function() {
+                generateFlashcardsBtn.disabled = true;
+                generateFlashcardsBtn.innerHTML = `
+                    <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading...
+                `;
+                window.location.href = '{{ route("flashcards.ai.generator") }}';
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('a[href="{{ route("flashcards.upgrade") }}"]');
+            if (target && target.classList.contains('bg-slate-400')) {
+                e.preventDefault();
+                window.location.href = '{{ route("flashcards.upgrade") }}';
+            }
+        });
 
          // Helper functions
          function showLoading() {
