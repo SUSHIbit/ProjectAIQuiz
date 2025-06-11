@@ -6,6 +6,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Carbon\Carbon;
 
 class User extends Authenticatable
 {
@@ -44,18 +45,104 @@ class User extends Authenticatable
         return $this->role === 'user';
     }
 
-    // Tier checking methods
+    // Tier checking methods (updated with subscription logic)
     public function isPremium(): bool
     {
-        return $this->tier === 'premium';
+        // Check if user has premium tier AND active subscription
+        if ($this->tier !== 'premium') {
+            return false;
+        }
+
+        $activeSubscription = $this->getActiveSubscription();
+        return $activeSubscription && $activeSubscription->isSubscriptionActive();
     }
 
     public function isFree(): bool
     {
-        return $this->tier === 'free';
+        return !$this->isPremium();
     }
 
-    // Attempt management methods
+    // Subscription methods
+    public function getActiveSubscription(): ?Payment
+    {
+        return $this->payments()
+            ->where('status', 'success')
+            ->where('subscription_status', 'active')
+            ->where('subscription_expires_at', '>', now())
+            ->orderBy('subscription_expires_at', 'desc')
+            ->first();
+    }
+
+    public function getLatestSubscription(): ?Payment
+    {
+        return $this->payments()
+            ->where('status', 'success')
+            ->whereNotNull('subscription_expires_at')
+            ->orderBy('subscription_expires_at', 'desc')
+            ->first();
+    }
+
+    public function hasExpiredSubscription(): bool
+    {
+        $latestSubscription = $this->getLatestSubscription();
+        return $latestSubscription && $latestSubscription->isSubscriptionExpired();
+    }
+
+    public function getSubscriptionStatus(): string
+    {
+        $activeSubscription = $this->getActiveSubscription();
+        
+        if ($activeSubscription) {
+            $daysUntilExpiry = $activeSubscription->days_until_expiry;
+            
+            if ($daysUntilExpiry <= 7) {
+                return 'expiring_soon';
+            }
+            
+            return 'active';
+        }
+
+        if ($this->hasExpiredSubscription()) {
+            return 'expired';
+        }
+
+        return 'none';
+    }
+
+    public function getSubscriptionExpiryDate(): ?Carbon
+    {
+        $activeSubscription = $this->getActiveSubscription();
+        return $activeSubscription?->subscription_expires_at;
+    }
+
+    public function getDaysUntilExpiry(): ?int
+    {
+        $activeSubscription = $this->getActiveSubscription();
+        return $activeSubscription?->days_until_expiry;
+    }
+
+    public function getCurrentPlanType(): ?string
+    {
+        $activeSubscription = $this->getActiveSubscription();
+        return $activeSubscription?->plan_type;
+    }
+
+    // Force expire user subscription (for admin use or cron jobs)
+    public function expireSubscription(): void
+    {
+        $activeSubscription = $this->getActiveSubscription();
+        
+        if ($activeSubscription) {
+            $activeSubscription->markAsExpired();
+        }
+        
+        $this->update([
+            'tier' => 'free',
+            'question_attempts' => 3,
+        ]);
+    }
+
+    // Attempt management methods (updated)
     public function canGenerateQuestions(): bool
     {
         return $this->isPremium() || $this->question_attempts > 0;
@@ -83,10 +170,39 @@ class User extends Authenticatable
         return $this->isPremium() ? 'Unlimited' : (string) $this->question_attempts;
     }
 
-    // Tier badge color for UI
+    // Tier badge color for UI (updated)
     public function getTierBadgeColorAttribute(): string
     {
-        return $this->isPremium() ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+        if ($this->isPremium()) {
+            $status = $this->getSubscriptionStatus();
+            
+            return match($status) {
+                'active' => 'bg-green-100 text-green-800',
+                'expiring_soon' => 'bg-yellow-100 text-yellow-800',
+                'expired' => 'bg-red-100 text-red-800',
+                default => 'bg-gray-100 text-gray-800'
+            };
+        }
+        
+        return 'bg-gray-100 text-gray-800';
+    }
+
+    public function getTierDisplayAttribute(): string
+    {
+        if ($this->isPremium()) {
+            $subscription = $this->getActiveSubscription();
+            $planType = $subscription?->plan_display_name ?? 'Premium';
+            
+            $status = $this->getSubscriptionStatus();
+            if ($status === 'expiring_soon') {
+                $daysLeft = $this->getDaysUntilExpiry();
+                return $planType . " (expires in {$daysLeft} days)";
+            }
+            
+            return $planType;
+        }
+        
+        return 'Free';
     }
 
     // Relationships
@@ -100,12 +216,17 @@ class User extends Authenticatable
         return $this->hasMany(Quiz::class);
     }
 
-    // NEW: Add this relationship
     public function quizAttempts()
     {
         return $this->hasMany(QuizAttempt::class);
     }
 
+    public function flashcards()
+    {
+        return $this->hasMany(Flashcard::class);
+    }
+
+    // Analytics and stats methods remain the same...
     public function getAnalyticsData()
     {
         $completedAttempts = $this->quizAttempts()
@@ -174,11 +295,6 @@ class User extends Authenticatable
         $secondAvg = $secondHalf->avg('score');
         
         return round($secondAvg - $firstAvg, 1);
-    }
-
-    public function flashcards()
-    {
-        return $this->hasMany(Flashcard::class);
     }
 
     public function getFlashcardStats()

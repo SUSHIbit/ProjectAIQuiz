@@ -25,11 +25,12 @@ Route::prefix('payment')->name('payment.')->group(function () {
     Route::get('/return', [PaymentController::class, 'return'])->name('return');
 });
 
-// Tier management routes
+// Tier management routes (UPDATED)
 Route::middleware('auth')->group(function () {
     Route::get('/tier/upgrade', [TierController::class, 'upgrade'])->name('tier.upgrade');
+    Route::get('/tier/renewal', [TierController::class, 'renewal'])->name('tier.renewal'); // NEW
     Route::get('/tier/compare', [TierController::class, 'compare'])->name('tier.compare');
-    Route::post('/tier/upgrade', [TierController::class, 'processUpgrade'])->name('tier.process-upgrade');
+    Route::post('/tier/upgrade', [TierController::class, 'processUpgrade'])->name('tier.process-upgrade'); // UPDATED
     Route::post('/tier/decrement-attempts', [TierController::class, 'decrementAttempts'])->name('tier.decrement');
 });
 
@@ -47,20 +48,20 @@ Route::middleware('auth')->prefix('payment')->name('payment.')->group(function (
     Route::get('/debug/config', [PaymentController::class, 'debug'])->name('debug');
 });
 
-// Quiz routes (protected by auth and tier middleware)
-Route::middleware(['auth', 'tier'])->prefix('quiz')->name('quiz.')->group(function () {
+// Quiz routes (protected by auth and subscription middleware)
+Route::middleware(['auth', 'subscription'])->prefix('quiz')->name('quiz.')->group(function () {
     Route::get('/generator', [QuizController::class, 'generator'])->name('generator');
     Route::post('/generate', [QuizController::class, 'generate'])->name('generate');
     Route::get('/edit', [QuizController::class, 'edit'])->name('edit');
     Route::post('/store', [QuizController::class, 'store'])->name('store');
 });
 
-// Quiz management routes (no tier restriction needed for viewing saved quizzes)
+// Quiz management routes (no subscription restriction needed for viewing saved quizzes)
 Route::middleware('auth')->prefix('quiz')->name('quiz.')->group(function () {
     Route::get('/', [QuizController::class, 'index'])->name('index');
     Route::get('/{quiz}', [QuizController::class, 'show'])->name('show');
     
-    // PDF Export routes (PHASE 9)
+    // PDF Export routes
     Route::get('/{quiz}/export-pdf', [QuizController::class, 'exportPdf'])->name('export.pdf');
     Route::get('/{quiz}/export-pdf-blank', [QuizController::class, 'exportPdfBlank'])->name('export.pdf-blank');
     Route::get('/{quiz}/preview-pdf', [QuizController::class, 'previewPdf'])->name('preview.pdf');
@@ -103,35 +104,35 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
 });
 
-// Analytics Routes
+// Analytics Routes (UPDATED to use subscription middleware)
 Route::middleware(['auth'])->group(function () {
     // Analytics upgrade page (accessible to all authenticated users)
     Route::get('/analytics/upgrade', function () {
         return view('analytics.upgrade');
     })->name('analytics.upgrade');
     
-    // User Analytics (Premium only)
-    Route::middleware(['premium:analytics'])->group(function () {
+    // User Analytics (Subscription required)
+    Route::middleware(['subscription:analytics'])->group(function () {
         Route::get('/analytics', [AnalyticsController::class, 'userDashboard'])->name('analytics.dashboard');
         Route::get('/analytics/subject', [AnalyticsController::class, 'subjectAnalytics'])->name('analytics.subject');
         Route::get('/analytics/export', [AnalyticsController::class, 'exportUserData'])->name('analytics.export');
     });
     
-    // Admin Analytics (Protected by admin middleware only - no premium restriction)
+    // Admin Analytics (Protected by admin middleware only - no subscription restriction)
     Route::middleware(['admin'])->group(function () {
         Route::get('/admin/analytics', [AnalyticsController::class, 'adminAnalytics'])->name('admin.analytics');
     });
 });
 
-// Flashcard Routes (Premium only)
+// Flashcard Routes (Subscription required)
 Route::middleware(['auth'])->group(function () {
     // Flashcards upgrade page (accessible to all authenticated users)
     Route::get('/flashcards/upgrade', function () {
         return view('flashcards.upgrade');
     })->name('flashcards.upgrade');
     
-    // Premium Flashcard Routes
-    Route::middleware(['premium:flashcards'])->prefix('flashcards')->name('flashcards.')->group(function () {
+    // Subscription-based Flashcard Routes
+    Route::middleware(['subscription:flashcards'])->prefix('flashcards')->name('flashcards.')->group(function () {
         Route::get('/', [FlashcardController::class, 'index'])->name('index');
         Route::get('/create', [FlashcardController::class, 'create'])->name('create');
         Route::post('/store', [FlashcardController::class, 'store'])->name('store');
@@ -153,24 +154,6 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-// Test Routes (ONLY for development/testing - remove in production)
-Route::middleware('auth')->prefix('test')->name('test.')->group(function () {
-    Route::get('/payment', function () {
-        return view('test-payment');
-    })->name('payment');
-    
-    Route::get('/payment/config', function () {
-        return response()->json([
-            'api_key' => config('services.toyyibpay.api_key') ? 'Set ✅' : 'Not Set ❌',
-            'category_code' => config('services.toyyibpay.category_code') ? 'Set ✅' : 'Not Set ❌',
-            'base_url' => config('services.toyyibpay.base_url'),
-            'sandbox' => config('services.toyyibpay.sandbox') ? 'Enabled ✅' : 'Disabled',
-            'callback_url' => route('payment.callback'),
-            'return_url' => route('payment.return'),
-        ]);
-    })->name('payment.config');
-});
-
 // Debug route (temporary - remove in production)
 Route::middleware('auth')->get('/debug/toyyibpay', function() {
     try {
@@ -181,6 +164,10 @@ Route::middleware('auth')->get('/debug/toyyibpay', function() {
             'sandbox' => config('services.toyyibpay.sandbox') ? 'true' : 'false',
             'callback_url' => route('payment.callback'),
             'return_url' => route('payment.return'),
+            'plan_amounts' => [
+                'monthly' => \App\Models\Payment::getPlanAmount('monthly'),
+                'yearly' => \App\Models\Payment::getPlanAmount('yearly'),
+            ]
         ];
         
         return response()->json($config);

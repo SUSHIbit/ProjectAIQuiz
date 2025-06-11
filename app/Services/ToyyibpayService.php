@@ -44,15 +44,19 @@ class ToyyibpayService
     {
         $billExternalRef = 'QUIZ_' . $payment->id . '_' . time();
         
+        // Get bill name based on plan type
+        $billName = $this->getBillName($payment->plan_type);
+        $billDescription = $this->getBillDescription($payment->plan_type);
+        
         // Make sure all required fields are properly set
         $billData = [
             'userSecretKey' => $this->apiKey,
             'categoryCode' => $this->categoryCode,
-            'billName' => 'Quiz Premium',  // Even shorter to be safe
-            'billDescription' => 'Premium upgrade for unlimited features',
+            'billName' => $billName,
+            'billDescription' => $billDescription,
             'billPriceSetting' => 1,
             'billPayorInfo' => 1,
-            'billAmount' => number_format($payment->amount * 100, 0, '', ''),
+            'billAmount' => number_format($payment->amount * 100, 0, '', ''), // Convert to cents
             'billReturnUrl' => route('payment.return'),
             'billCallbackUrl' => route('payment.callback'),
             'billExternalReferenceNo' => $billExternalRef,
@@ -62,7 +66,7 @@ class ToyyibpayService
             'billSplitPayment' => 0,
             'billSplitPaymentArgs' => '',
             'billPaymentChannel' => '0',
-            'billContentEmail' => 'Thank you for upgrading!',
+            'billContentEmail' => $this->getEmailContent($payment->plan_type),
             'billChargeToCustomer' => 1,
         ];
 
@@ -119,7 +123,9 @@ class ToyyibpayService
                 Log::info('Toyyibpay bill created successfully', [
                     'payment_id' => $payment->id,
                     'bill_code' => $billInfo['BillCode'],
-                    'payment_url' => $paymentUrl
+                    'payment_url' => $paymentUrl,
+                    'plan_type' => $payment->plan_type,
+                    'amount' => $payment->amount
                 ]);
 
                 return [
@@ -154,6 +160,33 @@ class ToyyibpayService
                 'message' => 'Connection error: ' . $e->getMessage(),
             ];
         }
+    }
+
+    private function getBillName(string $planType): string
+    {
+        return match($planType) {
+            'monthly' => 'Quiz Premium Monthly',
+            'yearly' => 'Quiz Premium Yearly',
+            default => 'Quiz Premium'
+        };
+    }
+
+    private function getBillDescription(string $planType): string
+    {
+        return match($planType) {
+            'monthly' => 'Monthly premium subscription for unlimited quiz & flashcard generation',
+            'yearly' => 'Yearly premium subscription for unlimited quiz & flashcard generation (12 months)',
+            default => 'Premium subscription for unlimited features'
+        };
+    }
+
+    private function getEmailContent(string $planType): string
+    {
+        return match($planType) {
+            'monthly' => 'Thank you for subscribing to our monthly premium plan! Enjoy unlimited features.',
+            'yearly' => 'Thank you for subscribing to our yearly premium plan! Enjoy 12 months of unlimited features.',
+            default => 'Thank you for upgrading to premium!'
+        };
     }
 
     public function getBillTransactions(string $billCode): array
@@ -230,33 +263,36 @@ class ToyyibpayService
             if ($payment->isPending()) {
                 $payment->markAsSuccess($callbackData);
                 
-                Log::info('Payment completed successfully via callback', [
+                Log::info('Subscription payment completed successfully via callback', [
                     'payment_id' => $payment->id,
                     'user_id' => $payment->user_id,
                     'amount' => $amount,
+                    'plan_type' => $payment->plan_type,
+                    'subscription_expires_at' => $payment->subscription_expires_at
                 ]);
             }
             
             return [
                 'success' => true,
                 'payment' => $payment,
-                'message' => 'Payment completed successfully',
+                'message' => 'Subscription payment completed successfully',
             ];
         } else {
             if ($payment->isPending()) {
                 $payment->markAsFailed($callbackData);
                 
-                Log::info('Payment failed via callback', [
+                Log::info('Subscription payment failed via callback', [
                     'payment_id' => $payment->id,
                     'user_id' => $payment->user_id,
                     'status' => $status,
+                    'plan_type' => $payment->plan_type
                 ]);
             }
             
             return [
                 'success' => false,
                 'payment' => $payment,
-                'message' => 'Payment failed or was cancelled',
+                'message' => 'Subscription payment failed or was cancelled',
             ];
         }
     }

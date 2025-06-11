@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 class TierController extends Controller
 {
     /**
-     * Show the tier upgrade page
+     * Show the tier upgrade page with plan selection
      */
     public function upgrade()
     {
@@ -16,10 +16,36 @@ class TierController extends Controller
         
         if ($user->isPremium()) {
             return redirect()->route('dashboard')
-                ->with('info', 'You already have Premium access!');
+                ->with('info', 'You already have an active Premium subscription!');
         }
 
-        return view('tier.upgrade', compact('user'));
+        // Check if user has expired subscription
+        $subscriptionStatus = $user->getSubscriptionStatus();
+        $latestSubscription = $user->getLatestSubscription();
+
+        return view('tier.upgrade', compact('user', 'subscriptionStatus', 'latestSubscription'));
+    }
+
+    /**
+     * Show renewal page for expired subscriptions
+     */
+    public function renewal()
+    {
+        $user = Auth::user();
+        
+        if ($user->isPremium()) {
+            return redirect()->route('dashboard')
+                ->with('info', 'Your subscription is still active!');
+        }
+
+        $latestSubscription = $user->getLatestSubscription();
+        
+        if (!$latestSubscription) {
+            return redirect()->route('tier.upgrade')
+                ->with('info', 'No previous subscription found. Please subscribe to get premium features.');
+        }
+
+        return view('tier.renewal', compact('user', 'latestSubscription'));
     }
 
     /**
@@ -31,16 +57,23 @@ class TierController extends Controller
     }
 
     /**
-     * Process upgrade - redirect to payment
+     * Process upgrade with plan selection
      */
     public function processUpgrade(Request $request)
     {
+        $request->validate([
+            'plan_type' => 'required|in:monthly,yearly'
+        ]);
+
         $user = Auth::user();
         
         if ($user->isPremium()) {
             return redirect()->route('dashboard')
-                ->with('info', 'You already have Premium access!');
+                ->with('info', 'You already have an active Premium subscription!');
         }
+
+        // Store selected plan in session for payment process
+        session(['selected_plan' => $request->plan_type]);
 
         return redirect()->route('payment.initiate');
     }
@@ -62,7 +95,7 @@ class TierController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'No attempts available or user is Premium'
+            'message' => 'No attempts available or user has active subscription'
         ]);
     }
 }

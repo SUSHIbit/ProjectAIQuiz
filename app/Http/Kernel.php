@@ -70,5 +70,6 @@ class Kernel extends HttpKernel
         'user' => \App\Http\Middleware\UserMiddleware::class,
         'tier' => \App\Http\Middleware\TierMiddleware::class,
         'premium' => \App\Http\Middleware\PremiumMiddleware::class,
+        'subscription' => \App\Http\Middleware\SubscriptionMiddleware::class,
     ];
 }
