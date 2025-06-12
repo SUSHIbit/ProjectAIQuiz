@@ -138,7 +138,7 @@ class User extends Authenticatable
         
         $this->update([
             'tier' => 'free',
-            'question_attempts' => 3,
+            'question_attempts' => 5, // Updated from 3 to 5
         ]);
     }
 

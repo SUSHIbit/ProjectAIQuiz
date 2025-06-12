@@ -25,16 +25,32 @@ class PaymentController extends Controller
         Log::info('Payment initiation started', [
             'user_id' => $user->id,
             'user_tier' => $user->tier,
+            'session_plan' => session('selected_plan'),
+            'request_method' => $request->method(),
+            'request_url' => $request->url()
         ]);
 
         // Check if user already has active subscription
         if ($user->isPremium()) {
+            Log::info('User already premium, redirecting', [
+                'user_id' => $user->id,
+                'tier' => $user->tier
+            ]);
             return redirect()->route('dashboard')
                 ->with('info', 'You already have an active Premium subscription!');
         }
 
         // Get selected plan from session or default to monthly
         $planType = session('selected_plan', 'monthly');
+        
+        if (!in_array($planType, ['monthly', 'yearly'])) {
+            Log::warning('Invalid plan type detected', [
+                'plan_type' => $planType,
+                'user_id' => $user->id
+            ]);
+            $planType = 'monthly';
+        }
+
         $amount = Payment::getPlanAmount($planType);
 
         Log::info('Plan selected for payment', [
@@ -73,292 +89,325 @@ class PaymentController extends Controller
             Log::info('Payment record created', [
                 'payment_id' => $payment->id,
                 'payment_ref' => $payment->payment_ref,
-               'plan_type' => $planType,
-               'amount' => $amount,
-           ]);
+                'plan_type' => $planType,
+                'amount' => $amount,
+            ]);
 
-           // Create bill with Toyyibpay
-           $billResult = $this->toyyibpayService->createBill($payment);
+            // Create bill with Toyyibpay
+            $billResult = $this->toyyibpayService->createBill($payment);
 
-           if ($billResult['success']) {
-               DB::commit();
-               
-               // Clear selected plan from session
-               session()->forget('selected_plan');
-               
-               // Log successful bill creation
-               Log::info('Payment bill created successfully', [
-                   'payment_id' => $payment->id,
-                   'bill_code' => $billResult['bill_code'],
-                   'payment_url' => $billResult['payment_url']
-               ]);
-               
-               // Store payment URL for future reference
-               $payment->update([
-                   'toyyibpay_response' => array_merge($payment->toyyibpay_response ?? [], [
-                       'payment_url' => $billResult['payment_url']
-                   ])
-               ]);
-               
-               // Redirect directly to ToyyibPay
-               return redirect()->away($billResult['payment_url']);
-           } else {
-               DB::rollBack();
-               
-               Log::error('Payment bill creation failed', [
-                   'payment_id' => $payment->id,
-                   'error' => $billResult['message']
-               ]);
-               
-               return redirect()->route('tier.upgrade')
-                   ->with('error', 'Unable to create payment: ' . $billResult['message']);
-           }
-       } catch (\Exception $e) {
-           DB::rollBack();
-           
-           Log::error('Payment initiation error', [
-               'user_id' => $user->id,
-               'error' => $e->getMessage(),
-               'trace' => $e->getTraceAsString()
-           ]);
+            if ($billResult['success']) {
+                DB::commit();
+                
+                // Clear selected plan from session
+                session()->forget('selected_plan');
+                
+                // Log successful bill creation
+                Log::info('Payment bill created successfully', [
+                    'payment_id' => $payment->id,
+                    'bill_code' => $billResult['bill_code'],
+                    'payment_url' => $billResult['payment_url']
+                ]);
+                
+                // Store payment URL for future reference
+                $payment->update([
+                    'toyyibpay_response' => array_merge($payment->toyyibpay_response ?? [], [
+                        'payment_url' => $billResult['payment_url']
+                    ])
+                ]);
+                
+                // Redirect directly to ToyyibPay
+                return redirect()->away($billResult['payment_url']);
+            } else {
+                DB::rollBack();
+                
+                Log::error('Payment bill creation failed', [
+                    'payment_id' => $payment->id,
+                    'error' => $billResult['message']
+                ]);
+                
+                return redirect()->route('tier.upgrade')
+                    ->with('error', 'Unable to create payment: ' . $billResult['message']);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Payment initiation error', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
-           return redirect()->route('tier.upgrade')
-               ->with('error', 'Unable to initiate payment. Please try again. Error: ' . $e->getMessage());
-       }
-   }
+            return redirect()->route('tier.upgrade')
+                ->with('error', 'Unable to initiate payment. Please try again. Error: ' . $e->getMessage());
+        }
+    }
 
-   public function show(Payment $payment)
-   {
-       $user = auth()->user();
+    // Test method to check if routes are working
+    public function testRoute()
+    {
+        $user = auth()->user();
+        
+        Log::info('Payment test route accessed', [
+            'user_id' => $user->id,
+            'timestamp' => now(),
+            'routes_available' => [
+                'payment.initiate' => route('payment.initiate'),
+                'tier.upgrade' => route('tier.upgrade'),
+                'dashboard' => route('dashboard')
+            ]
+        ]);
 
-       // Ensure user can only view their own payments
-       if ($payment->user_id !== $user->id) {
-           abort(403, 'Unauthorized access to payment.');
-       }
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment routes are working',
+            'user_id' => $user->id,
+            'session_plan' => session('selected_plan'),
+            'routes' => [
+                'payment.initiate' => route('payment.initiate'),
+                'tier.upgrade' => route('tier.upgrade'),
+                'dashboard' => route('dashboard')
+            ]
+        ]);
+    }
 
-       return view('payment.show', compact('payment', 'user'));
-   }
+    public function show(Payment $payment)
+    {
+        $user = auth()->user();
 
-   public function callback(Request $request)
-   {
-       try {
-           $callbackData = $request->all();
-           
-           Log::info('Payment callback received', [
-               'callback_data' => $callbackData,
-               'ip' => $request->ip(),
-               'user_agent' => $request->userAgent()
-           ]);
+        // Ensure user can only view their own payments
+        if ($payment->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to payment.');
+        }
 
-           $result = $this->toyyibpayService->processCallback($callbackData);
+        return view('payment.show', compact('payment', 'user'));
+    }
 
-           if ($result['success']) {
-               return response('OK', 200);
-           } else {
-               Log::error('Callback processing failed', [
-                   'result' => $result,
-                   'callback_data' => $callbackData
-               ]);
-               return response('FAILED', 400);
-           }
-       } catch (\Exception $e) {
-           Log::error('Payment callback error', [
-               'error' => $e->getMessage(),
-               'request_data' => $request->all(),
-               'trace' => $e->getTraceAsString()
-           ]);
-           
-           return response('ERROR', 500);
-       }
-   }
+    public function callback(Request $request)
+    {
+        try {
+            $callbackData = $request->all();
+            
+            Log::info('Payment callback received', [
+                'callback_data' => $callbackData,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
 
-   public function return(Request $request)
-   {
-       $user = auth()->user();
-       $status = $request->get('status_id', $request->get('status', '0'));
-       $billCode = $request->get('billcode');
-       $orderRef = $request->get('order_id');
+            $result = $this->toyyibpayService->processCallback($callbackData);
 
-       Log::info('Payment return received', [
-           'user_id' => $user->id,
-           'status' => $status,
-           'bill_code' => $billCode,
-           'order_ref' => $orderRef,
-           'all_params' => $request->all()
-       ]);
+            if ($result['success']) {
+                return response('OK', 200);
+            } else {
+                Log::error('Callback processing failed', [
+                    'result' => $result,
+                    'callback_data' => $callbackData
+                ]);
+                return response('FAILED', 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('Payment callback error', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response('ERROR', 500);
+        }
+    }
 
-       // Find payment
-       $payment = null;
-       if ($billCode) {
-           $payment = Payment::where('toyyibpay_bill_code', $billCode)
-               ->where('user_id', $user->id)
-               ->first();
-       }
+    public function return(Request $request)
+    {
+        $user = auth()->user();
+        $status = $request->get('status_id', $request->get('status', '0'));
+        $billCode = $request->get('billcode');
+        $orderRef = $request->get('order_id');
 
-       if (!$payment) {
-           Log::warning('Payment not found for return', [
-               'bill_code' => $billCode,
-               'user_id' => $user->id
-           ]);
-           
-           return redirect()->route('tier.upgrade')
-               ->with('error', 'Payment session not found.');
-       }
+        Log::info('Payment return received', [
+            'user_id' => $user->id,
+            'status' => $status,
+            'bill_code' => $billCode,
+            'order_ref' => $orderRef,
+            'all_params' => $request->all()
+        ]);
 
-       // Refresh payment status
-       $this->refreshPaymentStatus($payment);
+        // Find payment
+        $payment = null;
+        if ($billCode) {
+            $payment = Payment::where('toyyibpay_bill_code', $billCode)
+                ->where('user_id', $user->id)
+                ->first();
+        }
 
-       if ($payment->isSuccess()) {
-           return redirect()->route('payment.success', $payment->id);
-       } else if ($payment->isFailed()) {
-           return redirect()->route('payment.failed', $payment->id);
-       } else {
-           // Still pending
-           return redirect()->route('payment.show', $payment->id)
-               ->with('info', 'Payment is still being processed. Please wait a moment.');
-       }
-   }
+        if (!$payment) {
+            Log::warning('Payment not found for return', [
+                'bill_code' => $billCode,
+                'user_id' => $user->id
+            ]);
+            
+            return redirect()->route('tier.upgrade')
+                ->with('error', 'Payment session not found.');
+        }
 
-   public function success(Payment $payment)
-   {
-       $user = auth()->user();
+        // Refresh payment status
+        $this->refreshPaymentStatus($payment);
 
-       // Ensure user can only view their own payments
-       if ($payment->user_id !== $user->id) {
-           abort(403, 'Unauthorized access to payment.');
-       }
+        if ($payment->isSuccess()) {
+            return redirect()->route('payment.success', $payment->id);
+        } else if ($payment->isFailed()) {
+            return redirect()->route('payment.failed', $payment->id);
+        } else {
+            // Still pending
+            return redirect()->route('payment.show', $payment->id)
+                ->with('info', 'Payment is still being processed. Please wait a moment.');
+        }
+    }
 
-       if (!$payment->isSuccess()) {
-           return redirect()->route('payment.show', $payment->id);
-       }
+    public function success(Payment $payment)
+    {
+        $user = auth()->user();
 
-       return view('payment.success', compact('payment', 'user'));
-   }
+        // Ensure user can only view their own payments
+        if ($payment->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to payment.');
+        }
 
-   public function failed(Payment $payment)
-   {
-       $user = auth()->user();
+        if (!$payment->isSuccess()) {
+            return redirect()->route('payment.show', $payment->id);
+        }
 
-       // Ensure user can only view their own payments
-       if ($payment->user_id !== $user->id) {
-           abort(403, 'Unauthorized access to payment.');
-       }
+        return view('payment.success', compact('payment', 'user'));
+    }
 
-       return view('payment.failed', compact('payment', 'user'));
-   }
+    public function failed(Payment $payment)
+    {
+        $user = auth()->user();
 
-   public function cancel(Payment $payment)
-   {
-       $user = auth()->user();
+        // Ensure user can only view their own payments
+        if ($payment->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to payment.');
+        }
 
-       // Ensure user can only cancel their own payments
-       if ($payment->user_id !== $user->id) {
-           abort(403, 'Unauthorized access to payment.');
-       }
+        return view('payment.failed', compact('payment', 'user'));
+    }
 
-       if ($payment->isPending()) {
-           $payment->update(['status' => 'failed', 'subscription_status' => 'cancelled']);
-       }
+    public function cancel(Payment $payment)
+    {
+        $user = auth()->user();
 
-       return redirect()->route('tier.upgrade')
-           ->with('info', 'Payment has been cancelled.');
-   }
+        // Ensure user can only cancel their own payments
+        if ($payment->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to payment.');
+        }
 
-   public function status(Payment $payment)
-   {
-       $user = auth()->user();
+        if ($payment->isPending()) {
+            $payment->update(['status' => 'failed', 'subscription_status' => 'cancelled']);
+        }
 
-       // Ensure user can only check their own payments
-       if ($payment->user_id !== $user->id) {
-           abort(403, 'Unauthorized access to payment.');
-       }
+        return redirect()->route('tier.upgrade')
+            ->with('info', 'Payment has been cancelled.');
+    }
 
-       // Refresh payment status
-       $this->refreshPaymentStatus($payment);
+    public function status(Payment $payment)
+    {
+        $user = auth()->user();
 
-       return response()->json([
-           'status' => $payment->status,
-           'subscription_status' => $payment->subscription_status,
-           'is_success' => $payment->isSuccess(),
-           'is_pending' => $payment->isPending(),
-           'is_failed' => $payment->isFailed(),
-           'payment_url' => $payment->payment_url,
-           'amount' => $payment->formatted_amount,
-           'plan_type' => $payment->plan_display_name,
-           'subscription_expires_at' => $payment->subscription_expires_at?->format('M d, Y'),
-       ]);
-   }
+        // Ensure user can only check their own payments
+        if ($payment->user_id !== $user->id) {
+            abort(403, 'Unauthorized access to payment.');
+        }
 
-   private function refreshPaymentStatus(Payment $payment): void
-   {
-       if (!$payment->isPending() || !$payment->toyyibpay_bill_code) {
-           return;
-       }
+        // Refresh payment status
+        $this->refreshPaymentStatus($payment);
 
-       try {
-           $transactions = $this->toyyibpayService->getBillTransactions($payment->toyyibpay_bill_code);
-           
-           Log::info('Retrieved bill transactions', [
-               'payment_id' => $payment->id,
-               'bill_code' => $payment->toyyibpay_bill_code,
-               'transactions' => $transactions
-           ]);
-           
-           if (!empty($transactions)) {
-               $latestTransaction = end($transactions);
-               
-               if (isset($latestTransaction['billpaymentStatus']) && $latestTransaction['billpaymentStatus'] == '1') {
-                   $payment->markAsSuccess([
-                       'transaction_data' => $latestTransaction,
-                       'refreshed_at' => now(),
-                   ]);
-               }
-           }
-       } catch (\Exception $e) {
-           Log::error('Failed to refresh payment status', [
-               'payment_id' => $payment->id,
-               'error' => $e->getMessage(),
-           ]);
-       }
-   }
+        return response()->json([
+            'status' => $payment->status,
+            'subscription_status' => $payment->subscription_status,
+            'is_success' => $payment->isSuccess(),
+            'is_pending' => $payment->isPending(),
+            'is_failed' => $payment->isFailed(),
+            'payment_url' => $payment->payment_url,
+            'amount' => $payment->formatted_amount,
+            'plan_type' => $payment->plan_display_name,
+            'subscription_expires_at' => $payment->subscription_expires_at?->format('M d, Y'),
+        ]);
+    }
 
-   public function history()
-   {
-       $user = auth()->user();
-       
-       $payments = Payment::where('user_id', $user->id)
-           ->orderBy('created_at', 'desc')
-           ->paginate(10);
+    private function refreshPaymentStatus(Payment $payment): void
+    {
+        if (!$payment->isPending() || !$payment->toyyibpay_bill_code) {
+            return;
+        }
 
-       return view('payment.history', compact('payments', 'user'));
-   }
+        try {
+            $transactions = $this->toyyibpayService->getBillTransactions($payment->toyyibpay_bill_code);
+            
+            Log::info('Retrieved bill transactions', [
+                'payment_id' => $payment->id,
+                'bill_code' => $payment->toyyibpay_bill_code,
+                'transactions' => $transactions
+            ]);
+            
+            if (!empty($transactions)) {
+                $latestTransaction = end($transactions);
+                
+                if (isset($latestTransaction['billpaymentStatus']) && $latestTransaction['billpaymentStatus'] == '1') {
+                    $payment->markAsSuccess([
+                        'transaction_data' => $latestTransaction,
+                        'refreshed_at' => now(),
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to refresh payment status', [
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
 
-   // Debug method - remove in production
-   public function debug(Request $request)
-   {
-       try {
-           $testResult = $this->toyyibpayService->testConnection();
-           
-           return response()->json([
-               'config' => [
-                   'api_key' => config('services.toyyibpay.api_key') ? 'SET (length: ' . strlen(config('services.toyyibpay.api_key')) . ')' : 'NOT SET',
-                   'category_code' => config('services.toyyibpay.category_code') ?: 'NOT SET',
-                   'base_url' => config('services.toyyibpay.base_url'),
-                   'sandbox' => config('services.toyyibpay.sandbox') ? 'true' : 'false',
-               ],
-               'test_connection' => $testResult,
-               'callback_url' => route('payment.callback'),
-               'return_url' => route('payment.return'),
-               'plan_amounts' => [
-                   'monthly' => Payment::getPlanAmount('monthly'),
-                   'yearly' => Payment::getPlanAmount('yearly'),
-               ]
-           ]);
-       } catch (\Exception $e) {
-           return response()->json([
-               'error' => $e->getMessage(),
-               'trace' => $e->getTraceAsString(),
-           ]);
-       }
-   }
+    public function history()
+    {
+        $user = auth()->user();
+        
+        $payments = Payment::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('payment.history', compact('payments', 'user'));
+    }
+
+    // Debug method - remove in production
+    public function debug(Request $request)
+    {
+        try {
+            $testResult = $this->toyyibpayService->testConnection();
+            
+            return response()->json([
+                'config' => [
+                    'api_key' => config('services.toyyibpay.api_key') ? 'SET (length: ' . strlen(config('services.toyyibpay.api_key')) . ')' : 'NOT SET',
+                    'category_code' => config('services.toyyibpay.category_code') ?: 'NOT SET',
+                    'base_url' => config('services.toyyibpay.base_url'),
+                    'sandbox' => config('services.toyyibpay.sandbox') ? 'true' : 'false',
+                ],
+                'test_connection' => $testResult,
+                'callback_url' => route('payment.callback'),
+                'return_url' => route('payment.return'),
+                'plan_amounts' => [
+                    'monthly' => Payment::getPlanAmount('monthly'),
+                    'yearly' => Payment::getPlanAmount('yearly'),
+                ],
+                'routes_test' => [
+                    'payment.initiate' => route('payment.initiate'),
+                    'tier.upgrade' => route('tier.upgrade'),
+                    'dashboard' => route('dashboard')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
 }

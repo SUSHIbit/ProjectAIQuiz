@@ -28,24 +28,24 @@ Route::prefix('payment')->name('payment.')->group(function () {
 // Tier management routes (UPDATED)
 Route::middleware('auth')->group(function () {
     Route::get('/tier/upgrade', [TierController::class, 'upgrade'])->name('tier.upgrade');
-    Route::get('/tier/renewal', [TierController::class, 'renewal'])->name('tier.renewal'); // NEW
+    Route::get('/tier/renewal', [TierController::class, 'renewal'])->name('tier.renewal');
     Route::get('/tier/compare', [TierController::class, 'compare'])->name('tier.compare');
-    Route::post('/tier/upgrade', [TierController::class, 'processUpgrade'])->name('tier.process-upgrade'); // UPDATED
+    Route::post('/tier/upgrade', [TierController::class, 'processUpgrade'])->name('tier.process-upgrade');
     Route::post('/tier/decrement-attempts', [TierController::class, 'decrementAttempts'])->name('tier.decrement');
 });
 
-// Payment routes (protected by auth)
+// Payment routes (protected by auth) - MOVED UP to ensure proper route resolution
 Route::middleware('auth')->prefix('payment')->name('payment.')->group(function () {
-    Route::post('/initiate', [PaymentController::class, 'initiate'])->name('initiate');
+    // CHANGE: Make initiate accept GET requests since we redirect to it
+    Route::get('/initiate', [PaymentController::class, 'initiate'])->name('initiate');
+    Route::get('/test', [PaymentController::class, 'testRoute'])->name('test');
+    Route::get('/history/list', [PaymentController::class, 'history'])->name('history');
+    Route::get('/debug/config', [PaymentController::class, 'debug'])->name('debug');
     Route::get('/{payment}', [PaymentController::class, 'show'])->name('show');
     Route::get('/{payment}/status', [PaymentController::class, 'status'])->name('status');
     Route::post('/{payment}/cancel', [PaymentController::class, 'cancel'])->name('cancel');
     Route::get('/{payment}/success', [PaymentController::class, 'success'])->name('success');
     Route::get('/{payment}/failed', [PaymentController::class, 'failed'])->name('failed');
-    Route::get('/history/list', [PaymentController::class, 'history'])->name('history');
-    
-    // Debug route (remove in production)
-    Route::get('/debug/config', [PaymentController::class, 'debug'])->name('debug');
 });
 
 // Quiz routes (protected by auth and subscription middleware)
@@ -175,5 +175,10 @@ Route::middleware('auth')->get('/debug/toyyibpay', function() {
         return response()->json(['error' => $e->getMessage()]);
     }
 })->name('debug.toyyibpay');
+
+// Test Payment Route (for debugging - remove in production)
+Route::middleware('auth')->get('/test-payment', function() {
+    return view('test-payment');
+})->name('test-payment');
 
 require __DIR__.'/auth.php';

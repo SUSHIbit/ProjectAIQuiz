@@ -31,7 +31,7 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'role' => 'user',
             'tier' => 'free',
-            'question_attempts' => 3,
+            'question_attempts' => 5, // Updated from 3 to 5
         ];
     }
 

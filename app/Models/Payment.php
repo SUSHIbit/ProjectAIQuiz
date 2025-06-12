@@ -231,7 +231,7 @@ class Payment extends Model
         if ($this->user->getActiveSubscription()?->id === $this->id) {
             $this->user->update([
                 'tier' => 'free',
-                'question_attempts' => 3,
+                'question_attempts' => 5, // Updated from 3 to 5
             ]);
         }
     }
@@ -242,12 +242,12 @@ class Payment extends Model
         return $this->isMonthlyPlan() ? 15.00 : 120.00;
     }
 
-    // Get plan amount based on type
+    // Get plan amount based on type - UPDATED PRICING
     public static function getPlanAmount(string $planType): float
     {
         return match($planType) {
-            'monthly' => 15.00,
-            'yearly' => 120.00,
+            'monthly' => 15.00,  // RM15/month
+            'yearly' => 120.00,  // RM120/year (save RM60)
             default => 15.00
         };
     }

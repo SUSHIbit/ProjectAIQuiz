@@ -24,7 +24,7 @@ class AdminSeeder extends Seeder
         User::factory(10)->create([
             'role' => 'user',
             'tier' => 'free',
-            'question_attempts' => 3,
+            'question_attempts' => 5, // Updated from 3 to 5
         ]);
 
         User::factory(5)->create([

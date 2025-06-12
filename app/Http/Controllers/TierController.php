@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class TierController extends Controller
 {
@@ -61,6 +62,14 @@ class TierController extends Controller
      */
     public function processUpgrade(Request $request)
     {
+        // Add debug logging
+        Log::info('TierController::processUpgrade called', [
+            'user_id' => Auth::id(),
+            'request_data' => $request->all(),
+            'url' => $request->url(),
+            'method' => $request->method()
+        ]);
+
         $request->validate([
             'plan_type' => 'required|in:monthly,yearly'
         ]);
@@ -68,14 +77,41 @@ class TierController extends Controller
         $user = Auth::user();
         
         if ($user->isPremium()) {
+            Log::info('User already has premium, redirecting to dashboard', [
+                'user_id' => $user->id,
+                'tier' => $user->tier
+            ]);
+            
             return redirect()->route('dashboard')
                 ->with('info', 'You already have an active Premium subscription!');
         }
 
         // Store selected plan in session for payment process
         session(['selected_plan' => $request->plan_type]);
+        
+        Log::info('Plan stored in session, redirecting to payment initiate', [
+            'user_id' => $user->id,
+            'plan_type' => $request->plan_type,
+            'session_plan' => session('selected_plan')
+        ]);
 
-        return redirect()->route('payment.initiate');
+        // Check if payment.initiate route exists
+        try {
+            $paymentRoute = route('payment.initiate');
+            Log::info('Payment route generated successfully', [
+                'route' => $paymentRoute
+            ]);
+            
+            return redirect()->route('payment.initiate');
+        } catch (\Exception $e) {
+            Log::error('Error generating payment route', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('tier.upgrade')
+                ->with('error', 'Payment system is currently unavailable. Please try again later.');
+        }
     }
 
     /**
